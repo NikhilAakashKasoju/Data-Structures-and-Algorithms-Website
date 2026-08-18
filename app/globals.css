@@ -1,0 +1,227 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─────────────────────────────────────────────────────────────
+   THEME TOKENS
+   Every colour resolves through a CSS variable, so flipping
+   data-theme on <html> re-themes the entire site. No component
+   ever carries a `dark:` class.
+   ───────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: dark;
+  --c-bg: 13 7 20;
+  --c-text: 244 244 246;
+  --c-muted: 138 138 150;
+  --c-primary: 11 79 219;
+  --c-primary-2: 75 133 255;
+  --c-accent: 43 184 245;
+  --c-teal: 94 234 212;
+  --c-lime: 212 255 92;
+  --c-ring: 58 58 68;
+
+  /* Duplicates for inline SVG: var() is invalid in a presentation attribute,
+     so SVG uses these through style={{ fill: "var(--hex-teal)" }}. */
+  --hex-primary: #0b4fdb;
+  --hex-primary-2: #4b85ff;
+  --hex-accent: #2bb8f5;
+  --hex-teal: #5eead4;
+  --hex-lime: #d4ff5c;
+  --hex-ring: #3a3a44;
+
+  --surface: rgba(255, 255, 255, 0.02);
+  --surface-2: rgba(255, 255, 255, 0.055);
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.18);
+  --chip: rgba(0, 0, 0, 0.55);
+  --faint: rgba(255, 255, 255, 0.15);
+
+  --bg-base: #0d0714;
+  --bg-glow:
+    radial-gradient(1100px 650px at 50% 8%, rgba(20, 44, 110, 0.6), transparent 62%),
+    radial-gradient(800px 500px at 15% 55%, rgba(11, 79, 219, 0.12), transparent 60%),
+    radial-gradient(700px 450px at 88% 70%, rgba(94, 234, 212, 0.05), transparent 60%);
+  --bg-dot: rgba(168, 190, 224, 0.16);
+  --bg-fade: linear-gradient(180deg, rgba(13, 7, 20, .85) 0%, transparent 14%,
+                             transparent 86%, rgba(13, 7, 20, .9) 100%);
+  --btn-sheen: #fff;
+}
+
+/* Light is NOT an inversion. Teal and lime at their dark values are far too
+   pale to read as text on a light field, so they are re-darkened. The primary
+   blue is dark enough to survive unchanged — which is why the brand colour is
+   identical in both themes. */
+[data-theme="light"] {
+  color-scheme: light;
+  --c-bg: 247 248 252;
+  --c-text: 14 20 38;
+  --c-muted: 88 97 122;
+  --c-primary: 11 79 219;
+  --c-primary-2: 29 78 216;
+  --c-accent: 3 128 178;
+  --c-teal: 13 148 136;
+  --c-lime: 101 133 10;
+  --c-ring: 197 205 222;
+
+  --hex-primary: #0b4fdb;
+  --hex-primary-2: #1d4ed8;
+  --hex-accent: #0380b2;
+  --hex-teal: #0d9488;
+  --hex-lime: #65850a;
+  --hex-ring: #c5cdde;
+
+  --surface: rgba(255, 255, 255, 0.72);
+  --surface-2: rgba(255, 255, 255, 0.95);
+  --line: rgba(14, 20, 38, 0.1);
+  --line-strong: rgba(14, 20, 38, 0.24);
+  --chip: rgba(255, 255, 255, 0.82);
+  --faint: rgba(14, 20, 38, 0.14);
+
+  --bg-base: #f7f8fc;
+  --bg-glow:
+    radial-gradient(1100px 650px at 50% 8%, rgba(11, 79, 219, 0.1), transparent 62%),
+    radial-gradient(800px 500px at 15% 55%, rgba(11, 79, 219, 0.06), transparent 60%),
+    radial-gradient(700px 450px at 88% 70%, rgba(13, 148, 136, 0.06), transparent 60%);
+  --bg-dot: rgba(30, 52, 100, 0.14);
+  --bg-fade: linear-gradient(180deg, rgba(247, 248, 252, .85) 0%, transparent 14%,
+                             transparent 86%, rgba(247, 248, 252, .9) 100%);
+  --btn-sheen: rgba(255, 255, 255, 0.9);
+}
+
+/* Without this the two palettes cross-fade limb by limb and look broken. */
+body,
+.bg-glow,
+.bg-grid,
+.bg-fade {
+  transition: background-color .25s ease, background-image .25s ease;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   BASE
+   ───────────────────────────────────────────────────────────── */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-bg font-body text-text antialiased;
+    /* iOS Safari: without this the fixed background layers can be painted
+       under the home indicator with the wrong base colour during rubber-band
+       overscroll. */
+    background-color: var(--bg-base);
+  }
+
+  /* The nav is sticky at 92px tall, so an anchor jump would otherwise land
+     with the section heading hidden underneath it. */
+  section[id] {
+    scroll-margin-top: 92px;
+  }
+
+  /* The browser default focus ring is effectively invisible on #0d0714. */
+  :focus-visible {
+    outline: 2px solid rgb(var(--c-primary-2));
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Any element that ever animates a number needs fixed-width digits or the
+     label beneath it jitters as digit widths change. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   BACKGROUND LAYERS
+   Mounted once in layout.tsx. Sections themselves are transparent
+   so this gradient reads through the whole page.
+   ───────────────────────────────────────────────────────────── */
+.bg-glow,
+.bg-grid,
+.bg-fade {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.bg-glow {
+  background-color: var(--bg-base);
+  background-image: var(--bg-glow);
+}
+
+.bg-grid {
+  /* A dot texture, not a line grid: dots survive scaling without moiré. */
+  background-image: radial-gradient(var(--bg-dot) 1px, transparent 1px);
+  background-size: 26px 26px;
+  /* Keeps the texture from competing with foreground copy. */
+  opacity: 0.5;
+}
+
+.bg-fade {
+  background-image: var(--bg-fade);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   COMPONENT PRIMITIVES
+   ───────────────────────────────────────────────────────────── */
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full
+           bg-gradient-to-br from-purple to-[#2f74f0] px-5 py-3 text-[14px]
+           font-semibold text-white transition-transform sm:py-2.5;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-full border
+           border-line bg-surface px-5 py-3 text-[14px] font-semibold
+           transition-colors hover:border-line-strong hover:bg-surface-2
+           sm:py-2.5;
+  }
+
+  .card {
+    @apply rounded-2xl border border-line bg-surface p-6 transition-colors
+           hover:border-purple/35 hover:bg-surface-2;
+  }
+
+  /* Raised panel. The halo is a blurred sibling div, not a box-shadow —
+     a shadow that large and diffuse renders with visible colour banding
+     on dark backgrounds. */
+  .panel {
+    @apply relative rounded-3xl border border-line bg-surface p-6
+           backdrop-blur-sm sm:p-10 md:p-12;
+  }
+
+  .eyebrow {
+    @apply font-mono text-[11.5px] uppercase tracking-[0.12em] text-teal;
+  }
+
+  .label {
+    @apply font-mono text-[11px] uppercase tracking-[0.09em] text-muted;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   REDUCED MOTION — layer 1 of 3.
+   This block covers CSS animations and transitions only.
+   Layer 2 is <MotionConfig reducedMotion="user"> at the root, which
+   covers Framer's JS-driven transforms (CSS cannot reach those).
+   Layer 3 is svgRef.current.pauseAnimations(), which covers SVG SMIL
+   (<animateMotion>), which neither of the other two reaches.
+   ───────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
