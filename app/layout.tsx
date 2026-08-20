@@ -76,11 +76,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Keyboard users land here first; the target is the <main> below. */}
         <a
           href="#main"
-          className="sr-only focus-visible:not-sr-only focus-visible:fixed
+          className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:inline-flex
                      focus-visible:left-4 focus-visible:top-4 focus-visible:z-[60]
                      focus-visible:rounded-full focus-visible:border
                      focus-visible:border-line focus-visible:bg-surface-2
-                     focus-visible:px-4 focus-visible:py-2 focus-visible:text-[14px]
+                     focus-visible:min-h-[44px] focus-visible:items-center focus-visible:px-4
+                     focus-visible:py-2 focus-visible:text-[14px]
                      focus-visible:font-semibold"
         >
           Skip to content

@@ -15,6 +15,9 @@ const config: Config = {
         "purple-2": "rgb(var(--c-primary-2) / <alpha-value>)",
         magenta: "rgb(var(--c-accent) / <alpha-value>)",
         teal: "rgb(var(--c-teal) / <alpha-value>)",
+        /* Legible as text in both themes. `teal` is for graphics; on the
+           light theme it is 3.53:1 and fails AA for anything under 24px. */
+        "teal-text": "rgb(var(--c-teal-text) / <alpha-value>)",
         lime: "rgb(var(--c-lime) / <alpha-value>)",
         ring: "rgb(var(--c-ring) / <alpha-value>)",
         // Complete rgba values: their alpha differs per theme

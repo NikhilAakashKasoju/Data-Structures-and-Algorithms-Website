@@ -159,6 +159,39 @@ Three places break a house rule on purpose. All are commented in the source.
 | `Wordmark` | (no boundary) | Pure function; renders on the server in `Footer`, inlines into `Nav`'s bundle |
 | `app/page.tsx` | server | Shell only; the interactive parts own their own boundaries |
 
+### Two colours that are not safe as text
+
+The palette has two contrast traps, and both are now enforced rather than
+remembered:
+
+| Token | Theme | Ratio on the page | Safe for |
+| --- | --- | --- | --- |
+| `purple` `#0b4fdb` | dark | **2.98:1** | nothing — never use as text on dark |
+| `teal` `#0d9488` | light | **3.53:1** | graphics only (3:1), **not** text (4.5:1) |
+
+The teal one bit: every `/ eyebrow` on the page is 11.5px teal, so on the light
+theme every one of them failed AA. The fix is a separate `--c-teal-text`
+(`#0f766e`, **5.16:1**) used by `.eyebrow`, rather than darkening `--c-teal`
+and dulling every illustration stroke with it. `teal` is for graphics;
+`teal-text` is for text. Verified: dark 13.42:1, light 5.16:1.
+
+Measured contrast of every token against its page background:
+
+| Token | Dark | Light |
+| --- | --- | --- |
+| `text` | 18.08 | 17.26 |
+| `muted` | 5.82 | 5.81 |
+| `purple-2` | 5.77 | 6.31 |
+| `magenta` | 8.77 | 4.18 ▲ |
+| `lime` | 17.26 | 4.03 ▲ |
+| `teal` | 13.42 | 3.53 ▲ |
+| `teal-text` | 13.42 | 5.16 |
+
+▲ = graphics only on that theme. `lime` and `magenta` are currently used only
+as strokes and fills in illustrations, where the 3:1 graphics threshold
+applies and both pass. **Do not promote either to body text on the light
+theme without re-checking.**
+
 ### Colour
 
 All colour resolves through CSS variables on `<html data-theme>`. **No component
@@ -258,6 +291,33 @@ Gap numbers are stable; closed ones are not reused.
 | 1 | Section titles 11–21 unknown, then sections 4 and 10 not provably verbatim | 2026-08-20 — screenshots of all 21 sections |
 | 2b | 223 rows vs Udemy's 222; runtime 10m54s over | 2026-08-20 — one article row, plus a corrected AVL duration |
 | 2c | "Column Major Order" and "Multistage Graph" had no duration | 2026-08-20 — Multistage Graph is 32:54; Column Major Order is an article and has none |
+
+## Verification pass — 2026-08-20
+
+Run against the production build served statically, in headless Chromium.
+
+| Check | Result |
+| --- | --- |
+| Horizontal overflow @375 / 768 / 1440, both themes | **none** — `scrollWidth === innerWidth` in all six |
+| Console errors, full-page scroll, both themes | **clean** (only the expected 404 for the not-yet-added `icon.png`) |
+| `<h1>` count | **1** |
+| Heading level jumps | **none** — h1 → h2 → h3 throughout |
+| Landmarks | header, nav, main#main, 6 × section[id], footer |
+| Links | 35 total, 13 unique external — **no dead `#`, no broken anchors, every `target="_blank"` carries `rel="noopener noreferrer"`, no empty accessible names** |
+| Images without `alt` | 0 (there are no `<img>` yet) |
+| SVG | 42 total — 40 `aria-hidden`, 1 `role="img"` + label, 1 inside an `aria-hidden` wrapper |
+| Touch targets @375 | all ≥ 44px except one inline link inside a sentence, which WCAG 2.5.8 exempts |
+| Reduced motion | **0 running animations**; count-ups jump straight to their final values; 1 SVG reports SMIL paused |
+| Tab order | skip link → wordmark → 5 nav links → 2 nav CTAs → hero CTAs → content, in visual order |
+
+Two issues were found and fixed in this pass:
+
+1. **Light-theme eyebrow failed AA** at 3.53:1 — see "Two colours that are not
+   safe as text" above. Now 5.16:1.
+2. **Skip link was 39px tall** when focused. Now 44px.
+
+Reproduce with a static server over `out/` and a headless browser; the checks
+are ordinary DOM queries plus a WCAG relative-luminance calculation.
 
 ## Build order
 
