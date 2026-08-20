@@ -45,6 +45,7 @@ an `app/api/**` route handler — route handlers do not exist under
 | `components/Hero.tsx` | Hero copy, CTAs, count-up stats |
 | `components/HeroVisual.tsx` | Linked-list SVG; holds the `svgRef` for reduced-motion layer 3 |
 | `lib/useCountUp.ts` | rAF count-up against a real timestamp, easeOutExpo, skipped under reduced motion |
+| `components/Marquee.tsx` | Keyword band. Server component — pure CSS animation, ships zero JS |
 | `app/globals.css` | Theme tokens, background layers, component primitives, reduced-motion layer 1 |
 | `components/ThemeScript.tsx` | Blocking inline script — sets `data-theme` before first paint, no flash |
 | `components/MotionProvider.tsx` | `MotionConfig reducedMotion="user"` — reduced-motion layer 2 |
@@ -58,6 +59,30 @@ an `app/api/**` route handler — route handlers do not exist under
    neither of the above reaches
 
 Layer 3 lands with the first illustration.
+
+### Deliberate exceptions
+
+Two places break a house rule on purpose. Both are commented in the source.
+
+- **`Marquee` is full-bleed**, not inside the `max-w-[1300px]` section shell. A
+  band that stops short of the viewport edge reads as a widget; one that runs
+  off both edges reads as a conveyor.
+- **The marquee's reduced-motion form is not "frozen"**. The blanket
+  `prefers-reduced-motion` rule would leave the track at `translateX(0)` with
+  most terms unreachable, so a scoped rule turns it into a horizontally
+  scrollable strip instead.
+
+### Client vs server components
+
+| Component | Boundary | Why |
+| --- | --- | --- |
+| `Nav` | client | IntersectionObserver, scroll listener, open/close state, Escape handler |
+| `Hero` | client | Framer entrance variants + count-up |
+| `HeroVisual` | client | Pointer parallax and `pauseAnimations()` |
+| `ThemeToggle` | client | `localStorage` + DOM attribute |
+| `MotionProvider` | client | `MotionConfig` is a context provider |
+| **`Marquee`** | **server** | Pure CSS animation, no state, no DOM reads — ships zero JS |
+| `app/page.tsx` | server | Shell only; the interactive parts own their own boundaries |
 
 ### Colour
 
@@ -105,5 +130,24 @@ Nothing below is invented anywhere in the codebase. Each is `null` in
 
 ## Build order
 
-Nav → Hero → Marquee → Curriculum → Phases → Resources → LiveClass → Program →
-Instructor → Contact → Footer. One section per pass.
+One section per pass.
+
+- [x] **Nav** — sticky, scroll-spy, hamburger below `lg`
+- [x] **Hero** — copy, CTAs, count-up stats, linked-list visual
+- [x] **Marquee** — infinite keyword band
+- [ ] **Curriculum** — *blocked on gaps 1 and 2*
+- [ ] **Phases** — *blocked on gap 2*
+- [ ] **Resources** — *blocked on gap 6*
+- [ ] **LiveClass** — *blocked on gap 5*
+- [ ] **Program** — *blocked on gaps 3 and 4*
+- [ ] **Instructor** — *blocked on gap 8*
+- [ ] **Contact** — *blocked on gap 7*
+- [ ] **Footer**
+- [x] **ThemeToggle** — fixed bottom-right (landed with the scaffold)
+
+## Local development
+
+The dev server serves the site at **http://localhost:3000/dsa/**, not at `/`.
+A `GET /` returning 404 is `basePath` working correctly, not a fault. Newly
+added component files sometimes need a dev-server restart before Fast Refresh
+picks them up.

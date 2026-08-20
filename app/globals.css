@@ -194,6 +194,28 @@ body,
            backdrop-blur-sm sm:p-10 md:p-12;
   }
 
+  /* Edge fade for the keyword marquee. A hard clip at the viewport edge
+     makes terms look chopped; a mask lets them dissolve. -webkit- prefix
+     first because Safari still needs it — without the prefixed line the
+     mask is simply ignored there and the band gets the hard clip back,
+     which degrades acceptably rather than breaking. */
+  .marquee-mask {
+    -webkit-mask-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      #000 7%,
+      #000 93%,
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      #000 7%,
+      #000 93%,
+      transparent 100%
+    );
+  }
+
   .eyebrow {
     @apply font-mono text-[11.5px] uppercase tracking-[0.12em] text-teal;
   }
@@ -223,5 +245,15 @@ body,
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
+  }
+
+  /* The blanket rule above would leave the marquee frozen at translateX(0),
+     i.e. showing only the first few terms with the rest unreachable. Give it
+     a real static form instead: no transform, and the band becomes a
+     horizontally scrollable strip the reader moves at their own pace. */
+  .marquee-mask > div {
+    animation: none !important;
+    transform: none !important;
+    overflow-x: auto;
   }
 }
