@@ -42,6 +42,9 @@ an `app/api/**` route handler — route handlers do not exist under
 | `lib/curriculum.ts` | All 21 sections and 223 transcribed lecture rows, verbatim including source typos |
 | `lib/nav.ts` | Nav model — one array drives both the rendered list and the scroll-spy observer |
 | `components/Nav.tsx` | Sticky nav, IntersectionObserver scroll-spy, hamburger below `lg` |
+| `components/Hero.tsx` | Hero copy, CTAs, count-up stats |
+| `components/HeroVisual.tsx` | Linked-list SVG; holds the `svgRef` for reduced-motion layer 3 |
+| `lib/useCountUp.ts` | rAF count-up against a real timestamp, easeOutExpo, skipped under reduced motion |
 | `app/globals.css` | Theme tokens, background layers, component primitives, reduced-motion layer 1 |
 | `components/ThemeScript.tsx` | Blocking inline script — sets `data-theme` before first paint, no flash |
 | `components/MotionProvider.tsx` | `MotionConfig reducedMotion="user"` — reduced-motion layer 2 |
@@ -91,7 +94,7 @@ Nothing below is invented anywhere in the codebase. Each is `null` in
 | 2 | **Phase grouping.** How the 21 sections map onto the "phases" grid used on the DE site. | Phases |
 | 2b | **Lecture count is 223 here vs Udemy's stated 222.** Likely the duplicated Stacks row ("Python Code : … Push(), Pop(), Display", 20:12 and 1:30). The site shows Udemy's 222. | Hero stats |
 | 2c | **Two lectures have no duration** in the source paste — "Column Major Order" (Arrays) and "Multistage Graph" (Dynamic Programming). Stored as `null`. Their absence exactly explains the 43h35m ↔ 43h57m gap. | Curriculum |
-| 3 | **Programme price + checkout URL** for direct EduFulness enrolment (not the Udemy listing). | Program, Hero CTA |
+| 3 | **Programme price + checkout URL** for direct EduFulness enrolment (not the Udemy listing). Until supplied, the Hero's primary CTA points at Udemy — the only checkout that verifiably exists. There is deliberately no "Enrol now" button. | Program, Hero CTA |
 | 4 | **Batch structure** — weekday/weekend, programme length in months, weekly hours. | Program |
 | 5 | **Next live class** — date, topic, duration, time. Needs a "nothing scheduled" state either way. | LiveClass |
 | 6 | **Free resources** — YouTube playlist URLs and video counts for DSA (the DE numbers do not transfer). | Resources |
