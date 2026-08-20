@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
 
+import { Footer } from "@/components/Footer";
 import { MotionProvider } from "@/components/MotionProvider";
 import { Nav } from "@/components/Nav";
 import { ThemeScript } from "@/components/ThemeScript";
@@ -91,6 +92,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Nav />
           <main id="main">{children}</main>
         </MotionProvider>
+
+        {/* Outside <main> — a footer is a landmark of the page, not part of
+            its main content. Also outside MotionProvider: it animates
+            nothing, so it needs no context. */}
+        <Footer />
 
         <ThemeToggle />
       </body>

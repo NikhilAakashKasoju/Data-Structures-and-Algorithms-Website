@@ -49,6 +49,8 @@ an `app/api/**` route handler — route handlers do not exist under
 | `lib/stages.ts` | Six-stage grouping over the 21 sections; counts/durations computed, never typed |
 | `components/Curriculum.tsx` | Alternating rows, scroll-scrubbed spine, `<details>` per stage |
 | `components/CurriculumArt.tsx` | Six illustrations on one shared viewBox, accent passed as a prop |
+| `components/Wordmark.tsx` | Shared brand glyph + name, so Nav and Footer cannot drift apart |
+| `components/Footer.tsx` | Link columns driven by `NAV_ITEMS`, build-time copyright year. Server component |
 | `app/globals.css` | Theme tokens, background layers, component primitives, reduced-motion layer 1 |
 | `components/ThemeScript.tsx` | Blocking inline script — sets `data-theme` before first paint, no flash |
 | `components/MotionProvider.tsx` | `MotionConfig reducedMotion="user"` — reduced-motion layer 2 |
@@ -63,6 +65,14 @@ an `app/api/**` route handler — route handlers do not exist under
 
 Layer 3 currently applies to `HeroVisual`, the only component using SMIL. The
 curriculum illustrations use CSS animations only, so layers 1 and 2 cover them.
+
+### The copyright year is frozen at build time
+
+`output: "export"` means there is no server at request time, so the Footer's
+`new Date().getFullYear()` resolves when you run `npm run build`, not when a
+visitor loads the page. It shows the year of the **last deploy**. Rebuilding
+each January is the fix; a client-side script to correct it would cost a
+hydration boundary on an otherwise zero-JS component for one number.
 
 ### Deliberate exceptions
 
@@ -94,6 +104,8 @@ Three places break a house rule on purpose. All are commented in the source.
 | `ThemeToggle` | client | `localStorage` + DOM attribute |
 | `MotionProvider` | client | `MotionConfig` is a context provider |
 | **`Marquee`** | **server** | Pure CSS animation, no state, no DOM reads — ships zero JS |
+| **`Footer`** | **server** | No motion at all — a footer is scrolled to deliberately, so fading it in delays what the reader went looking for |
+| `Wordmark` | (no boundary) | Pure function; renders on the server in `Footer`, inlines into `Nav`'s bundle |
 | `app/page.tsx` | server | Shell only; the interactive parts own their own boundaries |
 
 ### Colour
@@ -179,7 +191,7 @@ Nothing below is invented anywhere in the codebase. Each unsupplied value is
 | 4 | **Batch structure** — weekday/weekend, programme length in months, weekly hours. | Program |
 | 5 | **Next live class** — date, topic, duration, time. Needs a "nothing scheduled" state either way. | LiveClass |
 | 6 | **Free resources** — YouTube playlist URLs and video counts for DSA (the DE numbers do not transfer). | Resources |
-| 7 | **Contact** — WhatsApp community link, reply-to email, PHP form endpoint path. | Contact, Footer |
+| 7 | **Contact** — WhatsApp community link, reply-to email, PHP form endpoint path. The Footer deliberately ships **without** a contact column rather than with `#` placeholders; it is added the moment these exist. | Contact, Footer |
 | 8 | **Instructor copy for DSA.** The DE site's bio (M.Tech NIT Calicut, GATE AIR 440, 110,000+ students mentored) is on record for Atchyut but should be confirmed before reuse here. | Instructor |
 | 9 | **Icons** — `app/icon.png` (512×512), `app/apple-icon.png` (180×180), `app/opengraph-image.png` (1200×630, PNG/JPEG — not WebP). | Metadata |
 | 10 | **Prerequisites / target audience wording** and any certificate claim. Do not assert a certificate unless the client confirms one exists. | Hero, Program |
@@ -208,7 +220,7 @@ One section per pass.
 - [ ] **Program** — *blocked on gaps 3 and 4*
 - [ ] **Instructor** — *blocked on gap 8*
 - [ ] **Contact** — *blocked on gap 7*
-- [ ] **Footer**
+- [x] **Footer** — brand, link columns from `NAV_ITEMS`, build-time year *(no contact column — gap 7)*
 - [x] **ThemeToggle** — fixed bottom-right (landed with the scaffold)
 
 ## Local development

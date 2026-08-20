@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { Wordmark } from "@/components/Wordmark";
 import { COURSE } from "@/lib/course";
 import { NAV_ITEMS } from "@/lib/nav";
 
@@ -126,13 +127,7 @@ export function Nav() {
           href="#main"
           className="group flex min-h-[44px] shrink-0 items-center gap-2.5"
         >
-          <NodeGlyph />
-          <span className="font-display text-[17px] font-bold tracking-tight">
-            EduFulness
-          </span>
-          <span className="hidden font-mono text-[11px] uppercase tracking-[0.12em] text-muted sm:inline">
-            / DSA
-          </span>
+          <Wordmark />
         </a>
 
         {/* ── Desktop links ── */}
@@ -251,51 +246,6 @@ export function Nav() {
         )}
       </AnimatePresence>
     </header>
-  );
-}
-
-/**
- * Two nodes and a pointer — the smallest drawing that says "linked
- * structure". Decorative: the wordmark beside it carries the name, so an
- * aria-label here would be read twice.
- */
-function NodeGlyph() {
-  return (
-    <svg
-      viewBox="0 0 34 20"
-      aria-hidden="true"
-      className="h-[20px] w-[34px] shrink-0"
-    >
-      <rect
-        x="1"
-        y="4"
-        width="12"
-        height="12"
-        rx="3.5"
-        fill="none"
-        strokeWidth="1.6"
-        style={{ stroke: "var(--hex-primary-2)" }}
-      />
-      <rect
-        x="21"
-        y="4"
-        width="12"
-        height="12"
-        rx="3.5"
-        fill="none"
-        strokeWidth="1.6"
-        style={{ stroke: "var(--hex-teal)" }}
-      />
-      {/* Pointer from node one to node two. */}
-      <path
-        d="M13.8 10h5.4M17.4 7.6 19.9 10l-2.5 2.4"
-        fill="none"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        style={{ stroke: "var(--hex-lime)" }}
-      />
-    </svg>
   );
 }
 
