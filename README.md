@@ -51,6 +51,9 @@ an `app/api/**` route handler — route handlers do not exist under
 | `components/CurriculumArt.tsx` | Six illustrations on one shared viewBox, accent passed as a prop |
 | `components/Wordmark.tsx` | Shared brand glyph + name, so Nav and Footer cannot drift apart |
 | `components/Footer.tsx` | Link columns driven by `NAV_ITEMS`, build-time copyright year. Server component |
+| `lib/resources.ts` | Free-video list. Titles verbatim from YouTube oEmbed; one off-topic entry kept but `excluded` |
+| `components/Resources.tsx` | Featured playlist + card grid, whole card is the link |
+| `components/ResourceArt.tsx` | Eight compact cover drawings on one shared 120×72 viewBox |
 | `app/globals.css` | Theme tokens, background layers, component primitives, reduced-motion layer 1 |
 | `components/ThemeScript.tsx` | Blocking inline script — sets `data-theme` before first paint, no flash |
 | `components/MotionProvider.tsx` | `MotionConfig reducedMotion="user"` — reduced-motion layer 2 |
@@ -65,6 +68,14 @@ an `app/api/**` route handler — route handlers do not exist under
 
 Layer 3 currently applies to `HeroVisual`, the only component using SMIL. The
 curriculum illustrations use CSS animations only, so layers 1 and 2 cover them.
+
+### Why the resource covers are drawn, not YouTube thumbnails
+
+Hotlinked thumbnails were the obvious alternative. They were rejected because
+they are external requests on a page that otherwise makes none, they arrive in
+whatever styling each video happened to be given — so eight together read as a
+jumble rather than a set — and a raster thumbnail cannot re-theme when the page
+does. The drawings share one 120×72 viewBox so every card crops identically.
 
 ### The copyright year is frozen at build time
 
@@ -186,11 +197,12 @@ Nothing below is invented anywhere in the codebase. Each unsupplied value is
 
 | # | Gap | Blocks |
 | --- | --- | --- |
-| 2 | **Stage grouping is ours, not the client's.** The six stages in `lib/stages.ts` — their membership, names and blurbs — were derived to make 21 sections readable. If the course has its own phase structure, replace this with it. | Curriculum, Phases |
+| 2 | **Stage grouping is ours, not the client's.** The six stages in `lib/stages.ts` — their membership, names and blurbs — were derived to make 21 sections readable. If the course has its own phase structure, replace this with it. | Curriculum |
 | 3 | **Programme price + checkout URL** for direct EduFulness enrolment (not the Udemy listing). Until supplied, the Hero's primary CTA points at Udemy — the only checkout that verifiably exists. There is deliberately no "Enrol now" button. | Program, Hero CTA |
 | 4 | **Batch structure** — weekday/weekend, programme length in months, weekly hours. | Program |
 | 5 | **Next live class** — date, topic, duration, time. Needs a "nothing scheduled" state either way. | LiveClass |
-| 6 | **Free resources** — YouTube playlist URLs and video counts for DSA (the DE numbers do not transfer). | Resources |
+| 6a | **Playlist video count.** The Resources section claims no count for the playlist, because YouTube rate-limited the playlist page and a count is exactly the kind of number not to guess. Supply it and it goes in. | Resources |
+| 6b | **One supplied link is off-topic.** `Qnvl2EHRK30` is *"Day 5: GROUP BY & HAVING Clause \| Primary Key \| MS SQL and Azure Data Factory \| Interview Questions"* — SQL/ADF, not DSA. It is in `lib/resources.ts` with `excluded: true` and is **not rendered**. Remove `excluded` if it was intended. | Resources |
 | 7 | **Contact** — WhatsApp community link, reply-to email, PHP form endpoint path. The Footer deliberately ships **without** a contact column rather than with `#` placeholders; it is added the moment these exist. | Contact, Footer |
 | 8 | **Instructor copy for DSA.** The DE site's bio (M.Tech NIT Calicut, GATE AIR 440, 110,000+ students mentored) is on record for Atchyut but should be confirmed before reuse here. | Instructor |
 | 9 | **Icons** — `app/icon.png` (512×512), `app/apple-icon.png` (180×180), `app/opengraph-image.png` (1200×630, PNG/JPEG — not WebP). | Metadata |
@@ -214,8 +226,8 @@ One section per pass.
 - [x] **Hero** — copy, CTAs, count-up stats, linked-list visual
 - [x] **Marquee** — infinite keyword band
 - [x] **Curriculum** — six stages, alternating rows, scrubbed spine *(grouping derived — gap 2)*
-- [ ] **Phases** — *blocked on gap 2; may be redundant now that Curriculum exposes all 21 sections*
-- [ ] **Resources** — *blocked on gap 6*
+- [x] ~~**Phases**~~ — **dropped 2026-08-20** at the client's call: Curriculum already exposes all 21 sections, so a phase grid would repeat the same data under invented headings. Removed from `NAV_ITEMS`.
+- [x] **Resources** — featured playlist + 8 cards, drawn cover art *(gaps 6a, 6b)*
 - [ ] **LiveClass** — *blocked on gap 5*
 - [ ] **Program** — *blocked on gaps 3 and 4*
 - [ ] **Instructor** — *blocked on gap 8*
