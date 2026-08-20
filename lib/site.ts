@@ -31,8 +31,19 @@ export const asset = (path: string): string =>
  * metadata URL would resolve against the domain root rather than /dsa/. There
  * are none today. If one is ever added, write it absolute with SITE_URL.
  */
-export const SITE_ORIGIN = "https://edufulness.com/";
-export const SITE_URL = "https://edufulness.com/dsa/";
+const ORIGIN = (
+  process.env.NEXT_PUBLIC_SITE_ORIGIN ?? "https://edufulness.com"
+).replace(/\/+$/, "");
+
+const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
+/** Bare origin — what `metadataBase` must be. */
+export const SITE_ORIGIN = `${ORIGIN}/`;
+
+/** Canonical address of this page, origin + basePath. Used for og:url.
+ *  On Hostinger that is https://edufulness.com/dsa/; on Render, where
+ *  basePath is empty, it collapses to the origin. */
+export const SITE_URL = `${ORIGIN}${BASE}/`;
 
 export const SITE = {
   name: "EduFulness",

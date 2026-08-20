@@ -1,0 +1,57 @@
+# Render Blueprint — optional. Everything here can also be set by hand in the
+# Render dashboard, which is the route the README describes step by step.
+#
+# NOTE ON FIELD NAMES: these follow Render's current Blueprint spec for static
+# sites. Check them against https://render.com/docs/blueprint-spec before
+# relying on this file — if Render rejects it, delete it and use the dashboard;
+# nothing else in the repo depends on it.
+#
+# basePath is NOT set here. Render exports RENDER="true" during every build and
+# next.config.mjs reads that, so the subfolder prefix drops away automatically.
+
+services:
+  - type: web
+    runtime: static
+    name: edufulness-dsa
+    # npm ci, not npm install: it installs exactly what package-lock.json
+    # pins, so a Render build cannot quietly resolve a different dependency
+    # tree than the one tested locally.
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./out
+
+    envVars:
+      # Next 14.2 needs >= 18.17. Pinned so a Render default bump cannot
+      # change the build under you.
+      - key: NODE_VERSION
+        value: "20.18.0"
+      # Set this to whatever the site is actually served from, INCLUDING the
+      # scheme and with no trailing slash. It drives metadataBase and og:url —
+      # get it wrong and every shared link previews the wrong site.
+      # Change to https://dsa.edufulness.com once the custom domain is live.
+      - key: NEXT_PUBLIC_SITE_ORIGIN
+        value: https://edufulness-dsa.onrender.com
+
+    headers:
+      # The .htaccess in public/ is Apache-only and does nothing here, so the
+      # same caching policy is restated in Render's own format.
+      #
+      # Immutable: _next/ filenames are content-hashed, so the name changes
+      # whenever the content does.
+      - path: /_next/static/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      - path: /_next/static/**/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      # HTML must always revalidate. Without this a returning visitor can be
+      # served yesterday's HTML pointing at chunk filenames this deploy
+      # replaced, and the page renders unstyled.
+      - path: /*
+        name: Cache-Control
+        value: public, max-age=0, must-revalidate
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin

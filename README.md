@@ -19,7 +19,88 @@ npm run typecheck
 the three font families and self-hosts them into the export. After that the
 files are cached in `.next/cache`.
 
-## Deploy
+## Deploy — two targets, one repo
+
+The same source builds for both hosts. The difference is `basePath`, and it is
+baked in at build time, so it cannot be one constant:
+
+| Host | Served from | `basePath` |
+| --- | --- | --- |
+| Hostinger | `https://edufulness.com/dsa/` — a **subfolder** | `/dsa` |
+| Render | the **root** of its own host | `""` |
+
+A `/dsa` build uploaded to Render 404s every asset and shows a blank page at
+`/`. A `""` build uploaded to Hostinger's subfolder does the same. Render
+exports `RENDER="true"` into every build, so `next.config.mjs` derives the
+right value instead of relying on anyone remembering:
+
+```js
+const basePath =
+  process.env.RENDER === "true" ? "" : process.env.SITE_BASE_PATH ?? "/dsa";
+```
+
+Both were built and inspected:
+
+```
+default          href="/dsa/_next/…"   og:image https://edufulness.com/dsa/opengraph-image.png
+RENDER=true      href="/_next/…"       og:image https://dsa.edufulness.com/opengraph-image.png
+```
+
+### Render
+
+**Render cannot serve `edufulness.com/dsa`.** That path belongs to whichever
+host answers for `edufulness.com` — today, Hostinger. On Render the site lives
+at `edufulness-dsa.onrender.com`, or at a subdomain such as
+`dsa.edufulness.com` pointed at Render with a CNAME. Decide which before
+setting `NEXT_PUBLIC_SITE_ORIGIN`, because it is what every share card and
+canonical URL resolves against.
+
+1. Push the repo to GitHub.
+2. Render dashboard → **New → Static Site** → connect the repo.
+3. Settings:
+   - **Build command**: `npm ci && npm run build`
+   - **Publish directory**: `out`
+4. Environment variables:
+   - `NODE_VERSION` = `20.18.0` — Next 14.2 needs ≥ 18.17; pinning stops a
+     Render default bump changing the build under you.
+   - `NEXT_PUBLIC_SITE_ORIGIN` = the real origin, no trailing slash. Leave it
+     unset and OG tags will point at edufulness.com, which is the wrong site.
+   - Do **not** set `SITE_BASE_PATH`. `RENDER=true` already handles it.
+5. **Headers** (dashboard → Headers, or the included `render.yaml`). Render
+   ignores `.htaccess` entirely, so the caching policy has to be restated:
+
+   | Path | Header | Value |
+   | --- | --- | --- |
+   | `/_next/static/*` | `Cache-Control` | `public, max-age=31536000, immutable` |
+   | `/_next/static/**/*` | `Cache-Control` | `public, max-age=31536000, immutable` |
+   | `/*` | `Cache-Control` | `public, max-age=0, must-revalidate` |
+   | `/*` | `X-Content-Type-Options` | `nosniff` |
+   | `/*` | `Referrer-Policy` | `strict-origin-when-cross-origin` |
+
+   The HTML rule is the one that matters. Without it a returning visitor gets
+   yesterday's HTML pointing at chunk filenames this deploy replaced, and the
+   page renders unstyled.
+
+6. **Do not add a catch-all rewrite to `/index.html`.** That is SPA advice and
+   is wrong here — it would swallow `404.html`, which the export already emits.
+
+`render.yaml` in the repo does steps 3–5 as a Blueprint. Its field names follow
+Render's Blueprint spec but were not verified against the live docs in the
+session that wrote it — if Render rejects it, delete it and use the dashboard.
+Nothing else depends on that file.
+
+#### Two things that stop working on Render
+
+- **`public/.htaccess` is inert.** It is still emitted into `out/` and is
+  harmless, but it configures nothing. Delete it if the site ever leaves
+  Hostinger for good.
+- **PHP does not run.** Render static sites serve files only, so
+  `php/dsa-api/submit.php` cannot be hosted there. The contact form must point
+  at a backend elsewhere — which it already does, via
+  `CONTACT.formEndpoint`. If that backend is on a different origin from the
+  site, it needs CORS headers allowing the Render origin.
+
+## Deploy — Hostinger
 
 1. `npm run build`
 2. **Delete everything inside** `public_html/dsa/` first — `_next/` filenames are
@@ -47,7 +128,8 @@ an `app/api/**` route handler — route handlers do not exist under
 
 | File | Why it exists |
 | --- | --- |
-| `next.config.mjs` | `output: "export"`, `basePath: "/dsa"`, `trailingSlash`, unoptimized images |
+| `next.config.mjs` | `output: "export"`, target-aware `basePath`, `trailingSlash`, unoptimized images |
+| `render.yaml` | Optional Render Blueprint — build, publish path, env vars, cache headers |
 | `lib/site.ts` | `asset()`, plus `SITE_ORIGIN` vs `SITE_URL` — see "The basePath trap, twice" |
 | `lib/motion.ts` | Shared entrance variants so the whole page animates as one document |
 | `lib/course.ts` | Single source of truth for course facts; unverified values are `null` |

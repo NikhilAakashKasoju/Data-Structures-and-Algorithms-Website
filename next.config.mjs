@@ -1,27 +1,47 @@
 /**
- * Static export for Hostinger shared hosting (PHP only, no Node runtime).
+ * Static export, deployable to TWO different targets from one repo.
  *
- * basePath is "/dsa" because the site is served from
- * https://edufulness.com/dsa/ — a subfolder, not a subdomain.
- * Set it to "" if this ever moves to a domain root.
+ * ── THE BASEPATH PROBLEM ────────────────────────────────────────────────────
+ * Hostinger serves this from a SUBFOLDER: https://edufulness.com/dsa/
+ * Render serves a static site from the ROOT of its own host:
+ *     https://<name>.onrender.com/   or   https://dsa.edufulness.com/
  *
- * Next applies basePath to its own bundles and to <Link>, but NOT to raw
- * strings pointing at public/ assets. Those must go through asset() in
- * lib/site.ts or they 404 in production while working fine in dev.
+ * A build with basePath "/dsa" deployed to Render 404s on every asset and
+ * shows nothing at "/". A build with basePath "" uploaded to Hostinger's
+ * subfolder does the same. The value is baked in at build time, so it cannot
+ * be one constant.
+ *
+ * Render sets RENDER="true" in every build environment (documented), so the
+ * correct value is derived rather than remembered. SITE_BASE_PATH overrides
+ * both, for any host that is neither.
  */
-const basePath = "/dsa";
+const basePath =
+  process.env.RENDER === "true"
+    ? ""
+    : process.env.SITE_BASE_PATH ?? "/dsa";
+
+/**
+ * Absolute origin, used for metadataBase and og:url. Must match wherever the
+ * build is actually served, or every share card points at the wrong site.
+ * NOT the same as basePath — see lib/site.ts.
+ */
+const siteOrigin =
+  process.env.NEXT_PUBLIC_SITE_ORIGIN ?? "https://edufulness.com";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "export",
-  // No Node runtime on the host, so the Image Optimization API cannot run.
+  // No Node runtime on either target's static tier, so the Image
+  // Optimization API cannot run.
   images: { unoptimized: true },
-  // Emits /about/index.html rather than /about.html — Apache serves the
-  // former from a directory URL without any rewrite rules.
+  // Emits /about/index.html rather than /about.html. Apache resolves that
+  // from a directory URL with no rewrite rules, and Render serves it too.
   trailingSlash: true,
   basePath,
-  // Exposed to the client so asset() can read it at runtime.
-  env: { NEXT_PUBLIC_BASE_PATH: basePath },
+  env: {
+    NEXT_PUBLIC_BASE_PATH: basePath,
+    NEXT_PUBLIC_SITE_ORIGIN: siteOrigin,
+  },
 };
 
 export default nextConfig;
