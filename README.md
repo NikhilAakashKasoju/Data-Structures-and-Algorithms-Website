@@ -54,6 +54,8 @@ an `app/api/**` route handler — route handlers do not exist under
 | `lib/resources.ts` | Free-video list. Titles verbatim from YouTube oEmbed; one off-topic entry kept but `excluded` |
 | `lib/liveClass.ts` | The one time-sensitive value on the site. `null` = nothing scheduled, which is a real state |
 | `components/LiveClass.tsx` | Scheduled / nothing-scheduled panel with **client-side expiry** |
+| `lib/instructor.ts` | Bio and figures, each sourced in a comment; `portrait: null` until a photo exists |
+| `components/Instructor.tsx` | Portrait with scrim caption, count-up stats, drawn fallback tile |
 | `components/Resources.tsx` | Featured playlist + card grid, whole card is the link |
 | `components/ResourceArt.tsx` | Eight compact cover drawings on one shared 120×72 viewBox |
 | `app/globals.css` | Theme tokens, background layers, component primitives, reduced-motion layer 1 |
@@ -70,6 +72,13 @@ an `app/api/**` route handler — route handlers do not exist under
 
 Layer 3 currently applies to `HeroVisual`, the only component using SMIL. The
 curriculum illustrations use CSS animations only, so layers 1 and 2 cover them.
+
+### What was left out of the instructor bio
+
+The Data Engineering page also claims *"9+ years of hands-on data integration,
+transformation and schema design"*. True of the instructor, irrelevant on a DSA
+page — quoting it would pad the bio with credentials that do not support the
+thing being sold. Everything else on that page transferred.
 
 ### Time-sensitive content on a site with no server
 
@@ -235,7 +244,8 @@ Nothing below is invented anywhere in the codebase. Each unsupplied value is
 | 6a | **Playlist video count.** The Resources section claims no count for the playlist, because YouTube rate-limited the playlist page and a count is exactly the kind of number not to guess. Supply it and it goes in. | Resources |
 | 6b | **One supplied link is off-topic.** `Qnvl2EHRK30` is *"Day 5: GROUP BY & HAVING Clause \| Primary Key \| MS SQL and Azure Data Factory \| Interview Questions"* — SQL/ADF, not DSA. It is in `lib/resources.ts` with `excluded: true` and is **not rendered**. Remove `excluded` if it was intended. | Resources |
 | 7 | **Contact** — WhatsApp community link, reply-to email, PHP form endpoint path. The Footer deliberately ships **without** a contact column rather than with `#` placeholders; it is added the moment these exist. | Contact, Footer |
-| 8 | **Instructor copy for DSA.** The DE site's bio (M.Tech NIT Calicut, GATE AIR 440, 110,000+ students mentored) is on record for Atchyut but should be confirmed before reuse here. | Instructor |
+| 8a | **Confirm the instructor figures are current.** The bio, the 110,000+ student count, the 99.97 percentile / AIR 440 and the 15+ years are all published by the client on edufulness.com/data-engineering and are reproduced here unchanged. "Published on your other site" is not "confirmed current for this one" — a student count in particular ages. | Instructor |
+| 8b | **No instructor portrait.** `INSTRUCTOR.portrait` is `null` and the component draws a fallback tile. Drop a photo in `public/` and set `portrait: "/instructor.jpg"` — it must go through `asset()`, which `portraitSrc()` already does. Stock photography was never an option: a stranger's face beside a real name is a lie in the one place the reader most needs to trust the page. | Instructor |
 | 9 | **Icons** — `app/icon.png` (512×512), `app/apple-icon.png` (180×180), `app/opengraph-image.png` (1200×630, PNG/JPEG — not WebP). | Metadata |
 | 10 | **Prerequisites / target audience wording** and any certificate claim. Do not assert a certificate unless the client confirms one exists. | Hero, Program |
 
@@ -261,7 +271,7 @@ One section per pass.
 - [x] **Resources** — featured playlist + 8 cards, drawn cover art *(gaps 6a, 6b)*
 - [x] **LiveClass** — both states built; ships the empty state *(gap 5 supplies a class)*
 - [ ] **Program** — *blocked on gaps 3 and 4*
-- [ ] **Instructor** — *blocked on gap 8*
+- [x] **Instructor** — bio, count-up stats, portrait slot with drawn fallback *(gaps 8a, 8b)*
 - [ ] **Contact** — *blocked on gap 7*
 - [x] **Footer** — brand, link columns from `NAV_ITEMS`, build-time year *(no contact column — gap 7)*
 - [x] **ThemeToggle** — fixed bottom-right (landed with the scaffold)

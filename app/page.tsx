@@ -1,5 +1,6 @@
 import { Curriculum } from "@/components/Curriculum";
 import { Hero } from "@/components/Hero";
+import { Instructor } from "@/components/Instructor";
 import { LiveClass } from "@/components/LiveClass";
 import { Marquee } from "@/components/Marquee";
 import { Resources } from "@/components/Resources";
@@ -8,7 +9,8 @@ import { NAV_ITEMS } from "@/lib/nav";
 /**
  * Home page.
  *
- * Built so far: Hero, Marquee, Curriculum, Resources, LiveClass. The remaining
+ * Built so far: Hero, Marquee, Curriculum, Resources, LiveClass, Instructor.
+ * The remaining
  * nav targets are still empty stubs so the Nav's scroll-spy has real sections
  * to observe; each is replaced by its real section one at a time.
  *
@@ -23,9 +25,10 @@ export default function Page() {
       <Curriculum />
       <Resources />
       <LiveClass />
+      <Instructor />
 
       {NAV_ITEMS.filter(
-        (item) => !["curriculum", "resources"].includes(item.id),
+        (item) => !["curriculum", "resources", "instructor"].includes(item.id),
       ).map((item) => (
         <Stub key={item.id} id={item.id} label={item.label} />
       ))}
