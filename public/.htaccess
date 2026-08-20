@@ -1,0 +1,46 @@
+# Apache config for public_html/dsa/ on Hostinger shared hosting.
+# Scoped to this folder — it does not touch the rest of edufulness.com.
+#
+# The whole point is the split below. Next emits content-hashed filenames
+# under _next/, so those files are immutable: if the content changes, the
+# name changes. They can be cached for a year. The HTML that references them
+# must NOT be, or a returning visitor keeps loading last week's page and
+# pointing it at chunk names that were deleted on the last upload.
+
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css text/plain text/xml
+  AddOutputFilterByType DEFLATE application/javascript application/json
+  AddOutputFilterByType DEFLATE image/svg+xml
+  # woff2 is already compressed; deflating it again wastes CPU for ~0 bytes.
+</IfModule>
+
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresDefault "access plus 1 hour"
+  ExpiresByType image/png "access plus 1 month"
+  ExpiresByType image/jpeg "access plus 1 month"
+  ExpiresByType image/svg+xml "access plus 1 month"
+  ExpiresByType font/woff2 "access plus 1 year"
+</IfModule>
+
+<IfModule mod_headers.c>
+  # Immutable: hashed filenames, safe to keep forever.
+  <FilesMatch "\.(js|css|woff2)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+
+  # Always revalidate the HTML. This is the line that stops a stale page
+  # requesting chunk names that no longer exist after a deploy.
+  <FilesMatch "\.html$">
+    Header set Cache-Control "public, max-age=0, must-revalidate"
+  </FilesMatch>
+
+  Header set X-Content-Type-Options "nosniff"
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# trailingSlash: true means every route is a directory with an index.html,
+# so Apache's default DirectoryIndex already resolves them. No rewrite rules
+# are needed, and none should be added — this is a static export, not an SPA
+# that needs a catch-all.
+ErrorDocument 404 /dsa/404.html

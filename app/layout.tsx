@@ -6,7 +6,7 @@ import { MotionProvider } from "@/components/MotionProvider";
 import { Nav } from "@/components/Nav";
 import { ThemeScript } from "@/components/ThemeScript";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { SITE_URL } from "@/lib/site";
+import { SITE_ORIGIN, SITE_URL } from "@/lib/site";
 
 import "./globals.css";
 
@@ -35,9 +35,10 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  /* Must include the subfolder AND a trailing slash, or relative OG image
-     URLs resolve against https://edufulness.com/ instead of /dsa/. */
-  metadataBase: new URL(SITE_URL),
+  /* The ORIGIN, not the subfolder — Next already adds basePath to the
+     file-convention image paths, and giving metadataBase the subfolder too
+     produces /dsa/dsa/opengraph-image.png. See lib/site.ts. */
+  metadataBase: new URL(SITE_ORIGIN),
   title: {
     default: "Data Structures & Algorithms — EduFulness",
     template: "%s — EduFulness",

@@ -24,7 +24,19 @@ files are cached in `.next/cache`.
 1. `npm run build`
 2. **Delete everything inside** `public_html/dsa/` first — `_next/` filenames are
    content-hashed, so stale chunks accumulate forever otherwise.
-3. Upload the contents of `out/` into `public_html/dsa/`.
+3. Upload the contents of `out/` into `public_html/dsa/` — **including the
+   dotfile `.htaccess`**, which many FTP clients hide by default.
+
+`public/.htaccess` is copied into the export and is scoped to that folder only;
+it does not affect the rest of edufulness.com. It sets `immutable` year-long
+caching on the content-hashed `js`/`css`/`woff2`, and `max-age=0,
+must-revalidate` on the HTML. That second rule is the one that matters: without
+it a returning visitor can be served last week's HTML pointing at chunk
+filenames you deleted on this upload, and the page renders unstyled.
+
+No rewrite rules are needed. `trailingSlash: true` makes every route a
+directory with an `index.html`, which Apache's `DirectoryIndex` already
+resolves. Do not add an SPA catch-all — this is a static export.
 
 The host is Hostinger shared hosting: PHP only, no Node runtime. Anything
 server-side (contact form) will be a small PHP endpoint in its own folder, not
@@ -36,7 +48,7 @@ an `app/api/**` route handler — route handlers do not exist under
 | File | Why it exists |
 | --- | --- |
 | `next.config.mjs` | `output: "export"`, `basePath: "/dsa"`, `trailingSlash`, unoptimized images |
-| `lib/site.ts` | `asset()` — every `public/` path must go through it or it 404s in production |
+| `lib/site.ts` | `asset()`, plus `SITE_ORIGIN` vs `SITE_URL` — see "The basePath trap, twice" |
 | `lib/motion.ts` | Shared entrance variants so the whole page animates as one document |
 | `lib/course.ts` | Single source of truth for course facts; unverified values are `null` |
 | `lib/curriculum.ts` | All 21 sections and 223 rows, verbatim and audited against screenshots. `displayTitle`/`badge`/`sectionLabel()` carry the rendered form; `kind` separates the one article from the 222 videos |
@@ -159,6 +171,42 @@ Three places break a house rule on purpose. All are commented in the source.
 | `Wordmark` | (no boundary) | Pure function; renders on the server in `Footer`, inlines into `Nav`'s bundle |
 | `app/page.tsx` | server | Shell only; the interactive parts own their own boundaries |
 
+### The basePath trap, twice
+
+`basePath: "/dsa"` bites in two different places, in opposite directions.
+
+**1. It is NOT applied to `public/` paths.** A raw `"/logo.png"` works in dev
+and 404s in production. Everything under `public/` goes through `asset()`.
+
+**2. It IS applied to file-convention metadata images — twice, if you let it.**
+Next already prefixes `basePath` onto the path it generates for
+`app/opengraph-image.png`. Setting `metadataBase` to the subfolder as well
+compounds them:
+
+```
+metadataBase "https://edufulness.com/dsa/"  +  "/dsa/opengraph-image.png"
+  → https://edufulness.com/dsa/dsa/opengraph-image.png     404
+```
+
+That was in the build until the icons were added and the output inspected. It
+is invisible in the UI — it only shows up when somebody shares the link and
+gets a blank card. `metadataBase` is now `SITE_ORIGIN`
+(`https://edufulness.com/`); `SITE_URL` (with `/dsa/`) is used for `og:url`.
+
+Caveat, written down so it is not rediscovered: with `metadataBase` at the
+origin, a **hand-written relative** metadata URL would resolve against the
+domain root. There are none. If one is added, write it absolute with
+`SITE_URL`.
+
+Verified in the built HTML:
+
+```
+og:url    https://edufulness.com/dsa/
+og:image  https://edufulness.com/dsa/opengraph-image.png
+icon      /dsa/icon.png
+apple     /dsa/apple-icon.png
+```
+
 ### Two colours that are not safe as text
 
 The palette has two contrast traps, and both are now enforced rather than
@@ -279,7 +327,7 @@ Nothing below is invented anywhere in the codebase. Each unsupplied value is
 | 7 | **Contact** — WhatsApp community link, reply-to email, PHP form endpoint path. The Footer deliberately ships **without** a contact column rather than with `#` placeholders; it is added the moment these exist. | Contact, Footer |
 | 8a | **Confirm the instructor figures are current.** The bio, the 110,000+ student count, the 99.97 percentile / AIR 440 and the 15+ years are all published by the client on edufulness.com/data-engineering and are reproduced here unchanged. "Published on your other site" is not "confirmed current for this one" — a student count in particular ages. | Instructor |
 | 8b | **No instructor portrait.** `INSTRUCTOR.portrait` is `null` and the component draws a fallback tile. Drop a photo in `public/` and set `portrait: "/instructor.jpg"` — it must go through `asset()`, which `portraitSrc()` already does. Stock photography was never an option: a stranger's face beside a real name is a lie in the one place the reader most needs to trust the page. | Instructor |
-| 9 | **Icons** — `app/icon.png` (512×512), `app/apple-icon.png` (180×180), `app/opengraph-image.png` (1200×630, PNG/JPEG — not WebP). | Metadata |
+
 | 10 | **Prerequisites / target audience wording** and any certificate claim. Do not assert a certificate unless the client confirms one exists. | Hero, Program |
 
 Gap numbers are stable; closed ones are not reused.
@@ -288,9 +336,26 @@ Gap numbers are stable; closed ones are not reused.
 
 | # | Was | Closed |
 | --- | --- | --- |
+| 9 | No `icon.png` / `apple-icon.png` / `opengraph-image.png` | 2026-08-20 — drawn from the site's own node glyph and palette, set in real Space Grotesk / JetBrains Mono |
 | 1 | Section titles 11–21 unknown, then sections 4 and 10 not provably verbatim | 2026-08-20 — screenshots of all 21 sections |
 | 2b | 223 rows vs Udemy's 222; runtime 10m54s over | 2026-08-20 — one article row, plus a corrected AVL duration |
 | 2c | "Column Major Order" and "Multistage Graph" had no duration | 2026-08-20 — Multistage Graph is 32:54; Column Major Order is an article and has none |
+
+### Fonts, and a build that needs the network
+
+`next/font/google` downloads the three families at build time and self-hosts
+them into the export, so **the first `npm run build` on a clean checkout needs
+network access to fonts.googleapis.com**. After that they are cached in
+`.next/cache`.
+
+That is a real fragility for a site rebuilt occasionally (the copyright year is
+baked in at build). The alternative is `next/font/local` with the woff2 files
+committed — `npm i @fontsource/space-grotesk @fontsource/inter
+@fontsource/jetbrains-mono`, copy the seven `latin-*-normal.woff2` files into
+`app/fonts/`, and swap the three `next/font/google` calls for `localFont({src:
+[...]})`. About fifteen lines, ~200KB in the repo, and builds stop depending on
+Google. **Not done** — §4 of the brief specifies `next/font/google`, so it is a
+call for the owner, not a silent change.
 
 ## Verification pass — 2026-08-20
 
