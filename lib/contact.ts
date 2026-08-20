@@ -1,69 +1,38 @@
 /**
  * CONTACT.
  *
- * Two states, the same pattern as the live-class panel:
+ * Layout follows the Data Engineering site: copy and a WhatsApp hand-off on
+ * the left, the form panel on the right.
  *
- *   formEndpoint === null  → channel hand-off. Real destinations only.
- *   formEndpoint set       → the form renders and posts to that PHP endpoint.
- *
- * Today it is null, so the page hands off to channels that actually exist
- * rather than showing a form that emails nowhere. A form that silently
- * discards a message is worse than no form: the sender believes they have
- * been in touch.
- *
- * WHY THE ENDPOINT IS NOT INSIDE /dsa/. The deploy step for this site is
- * "delete everything inside public_html/dsa/, then upload out/". A PHP file
- * living in that folder would be deleted on every single deploy. It goes in a
- * SIBLING folder — public_html/dsa-api/ — which the deploy never touches.
- * See php/README-deploy.md.
+ * COPY DISCIPLINE. The DE version promises "the full 33-module syllabus and
+ * the next batch dates". Neither exists for DSA — there is no syllabus PDF and
+ * no batch schedule on record — so this copy promises only what can actually
+ * be delivered: a reply. Promising a document that does not exist is the
+ * fastest way to lose the first email.
  */
 
-export type ContactChannel = {
-  label: string;
-  description: string;
-  href: string;
-  /** Opens off-site. */
-  external?: true;
-};
-
-/** Every one of these resolves somewhere real. No placeholders. */
-export const CONTACT_CHANNELS: ContactChannel[] = [
-  {
-    label: "Ask on the course",
-    description:
-      "Udemy's Q&A goes straight to the instructor and the answer stays visible to everyone else on the course.",
-    href: "https://www.udemy.com/course/mastering-data-structures-and-algorithms-using-c-programming/",
-    external: true,
-  },
-  {
-    label: "EduFulness on YouTube",
-    description:
-      "Comment on any lesson, or watch for announcements — live sessions are posted here first.",
-    href: "https://www.youtube.com/@EduFulnessEFN",
-    external: true,
-  },
-  {
-    label: "edufulness.com",
-    description:
-      "The rest of the EduFulness courses, including Azure Data Engineering.",
-    href: "https://edufulness.com/",
-    external: true,
-  },
-];
-
 export const CONTACT = {
-  /* ── Not yet supplied — README gap 7 ──
-     Set to the deployed endpoint, e.g. "https://edufulness.com/dsa-api/submit.php",
-     and the form replaces the channel hand-off automatically. The PHP file is
-     already written; it only needs a recipient address configured at the top
-     of it. */
+  /* ── Endpoint ──
+     The client has a backend; the URL is not wired yet. Until it is, the form
+     renders in its real layout but the submit button is disabled and says so,
+     rather than posting into nothing and reporting success. */
   formEndpoint: null as string | null,
 
-  /** Shown under the form so a sender knows what happens to their details.
-   *  Only rendered when the form is. */
-  privacyNote:
-    "We store your name and email only to reply about this course.",
-
-  /** WhatsApp community link, if there is one for DSA. Null = not rendered. */
+  /** WhatsApp channel for DSA announcements. Null = the button is not
+   *  rendered at all. The DE site has a channel; whether the same one covers
+   *  DSA has not been confirmed, and a WhatsApp link that lands people in the
+   *  wrong community is worse than no link. README gap 7b. */
   whatsappUrl: null as string | null,
+
+  /** Shown under the submit button. Says exactly what happens to the data —
+   *  no more, so it stays true. */
+  privacyNote: "We store your name and email only to reply about this course.",
+} as const;
+
+/** Field placeholders. Illustrative examples, never instructions — the real
+ *  labels sit above each field and do not disappear when someone types. */
+export const CONTACT_PLACEHOLDERS = {
+  name: "Ada Lovelace",
+  email: "you@example.com",
+  message: "I'd like to know more about the course…",
 } as const;

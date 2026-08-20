@@ -70,9 +70,9 @@ an `app/api/**` route handler — route handlers do not exist under
 | `components/Instructor.tsx` | Portrait with scrim caption, count-up stats, drawn fallback tile |
 | `lib/program.ts` | What's in the course, computed from the curriculum. `DIRECT_ENROLMENT` null by default |
 | `components/Program.tsx` | Raised pricing panel, one filled CTA |
-| `lib/contact.ts` | Channels + `formEndpoint`. Null = hand-off, set = form |
-| `components/Contact.tsx` | Channel hand-off or progressively-enhanced form |
-| `php/dsa-api/submit.php` | Mail endpoint. **Not part of the build** — see `php/README-deploy.md` |
+| `lib/contact.ts` | `formEndpoint`, `whatsappUrl`, placeholders. Null endpoint = submit disabled |
+| `components/Contact.tsx` | Two-column: copy + WhatsApp hand-off left, form panel right |
+| `php/dsa-api/submit.php` | Reference mail endpoint, **not part of the build**. The client has their own backend; keep this only if it is the one being used — see `php/README-deploy.md` |
 | `components/Resources.tsx` | Featured playlist + card grid, whole card is the link |
 | `components/ResourceArt.tsx` | Eight compact cover drawings on one shared 120×72 viewBox |
 | `app/globals.css` | Theme tokens, background layers, component primitives, reduced-motion layer 1 |
@@ -328,8 +328,8 @@ Nothing below is invented anywhere in the codebase. Each unsupplied value is
 | 5 | **Next live class** — `startsAt` (ISO **with** offset), `topic`, `durationMinutes`, `joinUrl`. Until then `LIVE_CLASS` is `null` and the panel honestly says nothing is scheduled. Set the object in `lib/liveClass.ts` and rebuild; it expires itself afterwards. | LiveClass |
 | 6a | **Playlist video count.** The Resources section claims no count for the playlist, because YouTube rate-limited the playlist page and a count is exactly the kind of number not to guess. Supply it and it goes in. | Resources |
 | 6b | **One supplied link is off-topic.** `Qnvl2EHRK30` is *"Day 5: GROUP BY & HAVING Clause \| Primary Key \| MS SQL and Azure Data Factory \| Interview Questions"* — SQL/ADF, not DSA. It is in `lib/resources.ts` with `excluded: true` and is **not rendered**. Remove `excluded` if it was intended. | Resources |
-| 7a | **Reply-to address for the contact form.** `php/dsa-api/submit.php` is written and tested but `MAIL_TO` is empty, so it returns 500 rather than accepting and discarding messages. Set it, upload to `public_html/dsa-api/`, then set `formEndpoint` in `lib/contact.ts`. Until then the Contact section hands off to real channels instead. | Contact |
-| 7b | **WhatsApp community link**, if there is one for DSA. `CONTACT.whatsappUrl` is null and nothing renders. The Footer also still ships without a contact column rather than with `#` placeholders. | Contact, Footer |
+| 7a | **The backend URL and what it expects.** The client has an existing backend. `CONTACT.formEndpoint` is null until it is wired, so the form renders in its real layout with submit disabled and a visible "not connected yet" line — it does not post into nothing and report success. Needed: the URL, the field names it expects, and whether it answers JSON. | Contact |
+| 7b | **WhatsApp channel link for DSA.** `CONTACT.whatsappUrl` is null, so the button is not rendered at all — the DE site has a channel but whether the same one covers DSA is unconfirmed, and a link that drops people in the wrong community is worse than no link. The Footer also still ships without a contact column. | Contact, Footer |
 | 8a | **Confirm the instructor figures are current.** The bio, the 110,000+ student count, the 99.97 percentile / AIR 440 and the 15+ years are all published by the client on edufulness.com/data-engineering and are reproduced here unchanged. "Published on your other site" is not "confirmed current for this one" — a student count in particular ages. | Instructor |
 | 8b | **No instructor portrait.** `INSTRUCTOR.portrait` is `null` and the component draws a fallback tile. Drop a photo in `public/` and set `portrait: "/instructor.jpg"` — it must go through `asset()`, which `portraitSrc()` already does. Stock photography was never an option: a stranger's face beside a real name is a lie in the one place the reader most needs to trust the page. | Instructor |
 
@@ -365,10 +365,41 @@ itself, that price *is* fixed and controlled, and it belongs on the page. Set
 line and an "Enrol now" primary, with Udemy dropping to secondary — one filled
 CTA either way.
 
+### The contact form
+
+Layout follows the Data Engineering site: copy and the WhatsApp hand-off on the
+left, the form panel on the right.
+
+**Copy discipline.** The DE version promises *"the full 33-module syllabus and
+the next batch dates"*. Neither exists for DSA — there is no syllabus PDF and
+no batch schedule on record — so this copy promises only what can be delivered:
+a reply.
+
+**Progressively enhanced.** The form carries a real `action` and
+`method="post"`, so with JavaScript disabled it submits normally and the
+browser navigates to whatever the backend returns. With JavaScript it is
+intercepted and posted with `fetch` so the reader stays on the page. Both hit
+the same endpoint; the fetch path sends `Accept: application/json`.
+
+**While `formEndpoint` is null** the form renders in its real layout but submit
+is disabled and a line under it says so. It does not pretend to send. A form
+that reports success into nothing is the worst outcome available here — the
+sender believes they are in touch and never hears back.
+
+Real `<label for>` above every field. The greyed text inside each box is an
+example, not a label: a placeholder vanishes the moment someone types, which
+strands anyone interrupted mid-form with an unlabelled box.
+
 ### The server-side piece, and where it must not live
 
-`output: "export"` has no route handlers, so the contact form posts to a small
-PHP endpoint. **It deliberately does not live in `public_html/dsa/`** — the
+`output: "export"` has no route handlers, so the contact form must post to
+something outside the export. **The client has their own backend**, so the PHP
+file in `php/` is now a reference implementation — keep it only if it is the
+one being used, and delete it otherwise rather than leaving two answers to the
+same question in the repo.
+
+Whatever backend is used, one rule carries over: **it must not live in
+`public_html/dsa/`** — the
 deploy step wipes that folder, so a PHP file there would be destroyed on every
 single deploy. It goes in a sibling:
 
@@ -431,7 +462,7 @@ each behind a single config value:
 | Section | Today | Becomes |
 | --- | --- | --- |
 | LiveClass | "No live class scheduled" | a dated session — set `LIVE_CLASS` |
-| Contact | channel hand-off | a working form — set `CONTACT.formEndpoint` |
+| Contact | form, submit disabled | a working form — set `CONTACT.formEndpoint` |
 | Program | "See the price on Udemy" | direct enrolment — set `DIRECT_ENROLMENT` |
 
 ## Verification pass — 2026-08-20
