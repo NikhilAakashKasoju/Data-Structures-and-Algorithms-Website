@@ -1,18 +1,19 @@
+import { Contact } from "@/components/Contact";
 import { Curriculum } from "@/components/Curriculum";
 import { Hero } from "@/components/Hero";
 import { Instructor } from "@/components/Instructor";
 import { LiveClass } from "@/components/LiveClass";
 import { Marquee } from "@/components/Marquee";
+import { Program } from "@/components/Program";
 import { Resources } from "@/components/Resources";
-import { NAV_ITEMS } from "@/lib/nav";
 
 /**
  * Home page.
  *
- * Built so far: Hero, Marquee, Curriculum, Resources, LiveClass, Instructor.
- * The remaining
- * nav targets are still empty stubs so the Nav's scroll-spy has real sections
- * to observe; each is replaced by its real section one at a time.
+ * Every nav target now resolves to real content — the placeholder stubs are
+ * gone. Section order follows §12 of the brief; LiveClass sits between
+ * Resources and Program and is reachable from the nav's secondary CTA rather
+ * than from NAV_ITEMS, so it does not take a slot in the nav bar.
  *
  * Server component — the interactive parts (Nav, Hero) own their own client
  * boundaries, so the page shell itself never ships to the browser.
@@ -25,32 +26,10 @@ export default function Page() {
       <Curriculum />
       <Resources />
       <LiveClass />
+      <Program />
       <Instructor />
-
-      {NAV_ITEMS.filter(
-        (item) => !["curriculum", "resources", "instructor"].includes(item.id),
-      ).map((item) => (
-        <Stub key={item.id} id={item.id} label={item.label} />
-      ))}
+      <Contact />
     </>
   );
 }
 
-/** Empty anchor target. Tall enough that the scroll-spy band can resolve it. */
-function Stub({ id, label }: { id: string; label: string }) {
-  return (
-    <section
-      id={id}
-      className="relative z-10 mx-auto max-w-[1300px] px-5 py-20 sm:px-8 sm:py-28 lg:px-12"
-    >
-      <p className="eyebrow">/ {label}</p>
-      <h2 className="mt-4 font-display text-[clamp(30px,3.8vw,46px)] font-bold leading-[1.12] tracking-tight">
-        {label}
-      </h2>
-      <p className="mt-4 max-w-[62ch] text-[16.5px] leading-relaxed text-muted">
-        Placeholder. This section has not been built yet.
-      </p>
-      <div className="mt-6 h-[40vh] rounded-3xl border border-dashed border-line" />
-    </section>
-  );
-}

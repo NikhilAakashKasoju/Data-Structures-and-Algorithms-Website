@@ -68,6 +68,11 @@ an `app/api/**` route handler — route handlers do not exist under
 | `components/LiveClass.tsx` | Scheduled / nothing-scheduled panel with **client-side expiry** |
 | `lib/instructor.ts` | Bio and figures, each sourced in a comment; `portrait: null` until a photo exists |
 | `components/Instructor.tsx` | Portrait with scrim caption, count-up stats, drawn fallback tile |
+| `lib/program.ts` | What's in the course, computed from the curriculum. `DIRECT_ENROLMENT` null by default |
+| `components/Program.tsx` | Raised pricing panel, one filled CTA |
+| `lib/contact.ts` | Channels + `formEndpoint`. Null = hand-off, set = form |
+| `components/Contact.tsx` | Channel hand-off or progressively-enhanced form |
+| `php/dsa-api/submit.php` | Mail endpoint. **Not part of the build** — see `php/README-deploy.md` |
 | `components/Resources.tsx` | Featured playlist + card grid, whole card is the link |
 | `components/ResourceArt.tsx` | Eight compact cover drawings on one shared 120×72 viewBox |
 | `app/globals.css` | Theme tokens, background layers, component primitives, reduced-motion layer 1 |
@@ -319,12 +324,12 @@ Nothing below is invented anywhere in the codebase. Each unsupplied value is
 | # | Gap | Blocks |
 | --- | --- | --- |
 | 2 | **Stage grouping is ours, not the client's.** The six stages in `lib/stages.ts` — their membership, names and blurbs — were derived to make 21 sections readable. If the course has its own phase structure, replace this with it. | Curriculum |
-| 3 | **Programme price + checkout URL** for direct EduFulness enrolment (not the Udemy listing). Until supplied, the Hero's primary CTA points at Udemy — the only checkout that verifiably exists. There is deliberately no "Enrol now" button. | Program, Hero CTA |
-| 4 | **Batch structure** — weekday/weekend, programme length in months, weekly hours. | Program |
+| 3 | **Direct-enrolment price, checkout URL and batch structure — only if EduFulness sells this programme itself.** If it is Udemy-only, this gap closes as "not applicable" and the panel is already correct. Set `DIRECT_ENROLMENT` in `lib/program.ts` and the panel grows a price, a batch line and an "Enrol now" primary, with Udemy demoted to secondary. | Program |
 | 5 | **Next live class** — `startsAt` (ISO **with** offset), `topic`, `durationMinutes`, `joinUrl`. Until then `LIVE_CLASS` is `null` and the panel honestly says nothing is scheduled. Set the object in `lib/liveClass.ts` and rebuild; it expires itself afterwards. | LiveClass |
 | 6a | **Playlist video count.** The Resources section claims no count for the playlist, because YouTube rate-limited the playlist page and a count is exactly the kind of number not to guess. Supply it and it goes in. | Resources |
 | 6b | **One supplied link is off-topic.** `Qnvl2EHRK30` is *"Day 5: GROUP BY & HAVING Clause \| Primary Key \| MS SQL and Azure Data Factory \| Interview Questions"* — SQL/ADF, not DSA. It is in `lib/resources.ts` with `excluded: true` and is **not rendered**. Remove `excluded` if it was intended. | Resources |
-| 7 | **Contact** — WhatsApp community link, reply-to email, PHP form endpoint path. The Footer deliberately ships **without** a contact column rather than with `#` placeholders; it is added the moment these exist. | Contact, Footer |
+| 7a | **Reply-to address for the contact form.** `php/dsa-api/submit.php` is written and tested but `MAIL_TO` is empty, so it returns 500 rather than accepting and discarding messages. Set it, upload to `public_html/dsa-api/`, then set `formEndpoint` in `lib/contact.ts`. Until then the Contact section hands off to real channels instead. | Contact |
+| 7b | **WhatsApp community link**, if there is one for DSA. `CONTACT.whatsappUrl` is null and nothing renders. The Footer also still ships without a contact column rather than with `#` placeholders. | Contact, Footer |
 | 8a | **Confirm the instructor figures are current.** The bio, the 110,000+ student count, the 99.97 percentile / AIR 440 and the 15+ years are all published by the client on edufulness.com/data-engineering and are reproduced here unchanged. "Published on your other site" is not "confirmed current for this one" — a student count in particular ages. | Instructor |
 | 8b | **No instructor portrait.** `INSTRUCTOR.portrait` is `null` and the component draws a fallback tile. Drop a photo in `public/` and set `portrait: "/instructor.jpg"` — it must go through `asset()`, which `portraitSrc()` already does. Stock photography was never an option: a stranger's face beside a real name is a lie in the one place the reader most needs to trust the page. | Instructor |
 
@@ -340,6 +345,64 @@ Gap numbers are stable; closed ones are not reused.
 | 1 | Section titles 11–21 unknown, then sections 4 and 10 not provably verbatim | 2026-08-20 — screenshots of all 21 sections |
 | 2b | 223 rows vs Udemy's 222; runtime 10m54s over | 2026-08-20 — one article row, plus a corrected AVL duration |
 | 2c | "Column Major Order" and "Multistage Graph" had no duration | 2026-08-20 — Multistage Graph is 32:54; Column Major Order is an article and has none |
+
+### Why there is no price on the page
+
+The course sells through Udemy, and Udemy's price is not something the seller
+controls day to day — it moves with their promotions and coupon campaigns,
+often several times a month. A price baked into a **statically exported** page
+would be wrong within days, and a wrong price on a checkout panel is the one
+number a buyer will hold you to.
+
+So the panel links to the live price instead. **This is not a placeholder
+standing in for a missing fact.** It is the correct design for a
+marketplace-sold course, and it would still be correct after the number was
+supplied.
+
+Direct enrolment is a different question: if EduFulness sells this programme
+itself, that price *is* fixed and controlled, and it belongs on the page. Set
+`DIRECT_ENROLMENT` in `lib/program.ts` and the panel gains a price, a batch
+line and an "Enrol now" primary, with Udemy dropping to secondary — one filled
+CTA either way.
+
+### The server-side piece, and where it must not live
+
+`output: "export"` has no route handlers, so the contact form posts to a small
+PHP endpoint. **It deliberately does not live in `public_html/dsa/`** — the
+deploy step wipes that folder, so a PHP file there would be destroyed on every
+single deploy. It goes in a sibling:
+
+```
+public_html/
+  dsa/            ← wiped and replaced each deploy
+  dsa-api/
+    submit.php    ← uploaded once, by hand
+```
+
+`php/` is not part of the Next build; verified that `out/` contains no `.php`.
+
+The endpoint answers two callers with one code path: `fetch` sending
+`Accept: application/json` gets JSON, a plain form post with JS disabled gets a
+small HTML page. That is what lets the form be progressively enhanced — it has
+a real `action` and `method="post"` and works without JavaScript.
+
+Every branch was exercised against `php -S`:
+
+| Case | Result |
+| --- | --- |
+| `MAIL_TO` unset | **500** — refuses to run rather than silently dropping mail |
+| `GET` | **405** |
+| Foreign `Origin` | **403** |
+| Honeypot filled | **200 `{"ok":true}`** — sends nothing; a 403 would teach a bot what to avoid |
+| Missing email | **422** |
+| Malformed email | **422** |
+| `email=a@b.com\r\nBcc: victim@…` | **422** — rejected before it reaches a header |
+| No-JS post | HTML confirmation page, not JSON |
+| Valid post, MTA unavailable | **502** — the failure path reports failure |
+
+`From:` is a mailbox on edufulness.com, never the sender's address: the domain
+does not authorise Gmail to send on its behalf, so SPF/DKIM would fail and the
+mail would be binned. The sender goes in `Reply-To:`.
 
 ### Fonts, and a build that needs the network
 
@@ -357,6 +420,20 @@ committed — `npm i @fontsource/space-grotesk @fontsource/inter
 Google. **Not done** — §4 of the brief specifies `next/font/google`, so it is a
 call for the owner, not a silent change.
 
+## Status
+
+**All eleven sections are built.** Every nav target resolves to real content;
+there are no placeholder stubs left in `app/page.tsx`.
+
+Three sections ship a deliberate "not yet" state rather than invented content,
+each behind a single config value:
+
+| Section | Today | Becomes |
+| --- | --- | --- |
+| LiveClass | "No live class scheduled" | a dated session — set `LIVE_CLASS` |
+| Contact | channel hand-off | a working form — set `CONTACT.formEndpoint` |
+| Program | "See the price on Udemy" | direct enrolment — set `DIRECT_ENROLMENT` |
+
 ## Verification pass — 2026-08-20
 
 Run against the production build served statically, in headless Chromium.
@@ -367,10 +444,10 @@ Run against the production build served statically, in headless Chromium.
 | Console errors, full-page scroll, both themes | **clean** (only the expected 404 for the not-yet-added `icon.png`) |
 | `<h1>` count | **1** |
 | Heading level jumps | **none** — h1 → h2 → h3 throughout |
-| Landmarks | header, nav, main#main, 6 × section[id], footer |
-| Links | 35 total, 13 unique external — **no dead `#`, no broken anchors, every `target="_blank"` carries `rel="noopener noreferrer"`, no empty accessible names** |
+| Landmarks | header, nav, main#main, 7 × section[id], footer |
+| Links | 40 total, 13 unique external — **no dead `#`, no broken anchors, every `target="_blank"` carries `rel="noopener noreferrer"`, no empty accessible names** |
 | Images without `alt` | 0 (there are no `<img>` yet) |
-| SVG | 42 total — 40 `aria-hidden`, 1 `role="img"` + label, 1 inside an `aria-hidden` wrapper |
+| SVG | 57 total — 55 `aria-hidden`, 1 `role="img"` + label, 1 inside an `aria-hidden` wrapper |
 | Touch targets @375 | all ≥ 44px except one inline link inside a sentence, which WCAG 2.5.8 exempts |
 | Reduced motion | **0 running animations**; count-ups jump straight to their final values; 1 SVG reports SMIL paused |
 | Tab order | skip link → wordmark → 5 nav links → 2 nav CTAs → hero CTAs → content, in visual order |
@@ -395,9 +472,9 @@ One section per pass.
 - [x] ~~**Phases**~~ — **dropped 2026-08-20** at the client's call: Curriculum already exposes all 21 sections, so a phase grid would repeat the same data under invented headings. Removed from `NAV_ITEMS`.
 - [x] **Resources** — featured playlist + 8 cards, drawn cover art *(gaps 6a, 6b)*
 - [x] **LiveClass** — both states built; ships the empty state *(gap 5 supplies a class)*
-- [ ] **Program** — *blocked on gaps 3 and 4*
+- [x] **Program** — panel with computed inclusions and one filled CTA *(direct enrolment optional — gap 3)*
 - [x] **Instructor** — bio, count-up stats, portrait slot with drawn fallback *(gaps 8a, 8b)*
-- [ ] **Contact** — *blocked on gap 7*
+- [x] **Contact** — channel hand-off now, form ready behind one config value *(gaps 7a, 7b)*
 - [x] **Footer** — brand, link columns from `NAV_ITEMS`, build-time year *(no contact column — gap 7)*
 - [x] **ThemeToggle** — fixed bottom-right (landed with the scaffold)
 
