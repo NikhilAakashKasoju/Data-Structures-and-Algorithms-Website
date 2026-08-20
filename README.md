@@ -52,6 +52,8 @@ an `app/api/**` route handler — route handlers do not exist under
 | `components/Wordmark.tsx` | Shared brand glyph + name, so Nav and Footer cannot drift apart |
 | `components/Footer.tsx` | Link columns driven by `NAV_ITEMS`, build-time copyright year. Server component |
 | `lib/resources.ts` | Free-video list. Titles verbatim from YouTube oEmbed; one off-topic entry kept but `excluded` |
+| `lib/liveClass.ts` | The one time-sensitive value on the site. `null` = nothing scheduled, which is a real state |
+| `components/LiveClass.tsx` | Scheduled / nothing-scheduled panel with **client-side expiry** |
 | `components/Resources.tsx` | Featured playlist + card grid, whole card is the link |
 | `components/ResourceArt.tsx` | Eight compact cover drawings on one shared 120×72 viewBox |
 | `app/globals.css` | Theme tokens, background layers, component primitives, reduced-motion layer 1 |
@@ -68,6 +70,35 @@ an `app/api/**` route handler — route handlers do not exist under
 
 Layer 3 currently applies to `HeroVisual`, the only component using SMIL. The
 curriculum illustrations use CSS animations only, so layers 1 and 2 cover them.
+
+### Time-sensitive content on a site with no server
+
+`output: "export"` renders the page once, at build. Nothing re-renders the
+morning after a live class, so a scheduled date left alone would keep
+advertising a session that finished last week — the most damaging kind of
+stale content on a course page. `components/LiveClass.tsx` handles it:
+
+1. The **static HTML carries the scheduled state**, so a crawler and a no-JS
+   reader get it, and at build time it is correct.
+2. On mount the component compares the session's **end** time (not its start —
+   someone arriving ten minutes late still needs the join link) to the clock,
+   and swaps to the empty state if it has passed.
+3. `expired` starts `false` so the first client render matches the server
+   render exactly; the swap happens a frame later. No hydration mismatch.
+4. It re-checks every 60s, because a reader can leave the page open across
+   the end of a session.
+
+Dates are formatted with an explicit `timeZone: "Asia/Kolkata"`. Without it
+the build (UTC) and the browser (anywhere) produce different strings for the
+same instant, and React logs a hydration mismatch **on a date** — the worst
+thing on this panel to get quietly wrong. For the same reason `startsAt` must
+carry an explicit offset: a bare `"2026-09-05T10:00"` is parsed as UTC at
+build and as local time in the browser.
+
+**Both states were exercised before shipping**: a future date renders the
+scheduled panel, a past date is present in the static HTML and swaps to the
+empty panel after hydration with no console errors. The site currently ships
+the empty state, because `LIVE_CLASS` is `null`.
 
 ### Why the resource covers are drawn, not YouTube thumbnails
 
@@ -200,7 +231,7 @@ Nothing below is invented anywhere in the codebase. Each unsupplied value is
 | 2 | **Stage grouping is ours, not the client's.** The six stages in `lib/stages.ts` — their membership, names and blurbs — were derived to make 21 sections readable. If the course has its own phase structure, replace this with it. | Curriculum |
 | 3 | **Programme price + checkout URL** for direct EduFulness enrolment (not the Udemy listing). Until supplied, the Hero's primary CTA points at Udemy — the only checkout that verifiably exists. There is deliberately no "Enrol now" button. | Program, Hero CTA |
 | 4 | **Batch structure** — weekday/weekend, programme length in months, weekly hours. | Program |
-| 5 | **Next live class** — date, topic, duration, time. Needs a "nothing scheduled" state either way. | LiveClass |
+| 5 | **Next live class** — `startsAt` (ISO **with** offset), `topic`, `durationMinutes`, `joinUrl`. Until then `LIVE_CLASS` is `null` and the panel honestly says nothing is scheduled. Set the object in `lib/liveClass.ts` and rebuild; it expires itself afterwards. | LiveClass |
 | 6a | **Playlist video count.** The Resources section claims no count for the playlist, because YouTube rate-limited the playlist page and a count is exactly the kind of number not to guess. Supply it and it goes in. | Resources |
 | 6b | **One supplied link is off-topic.** `Qnvl2EHRK30` is *"Day 5: GROUP BY & HAVING Clause \| Primary Key \| MS SQL and Azure Data Factory \| Interview Questions"* — SQL/ADF, not DSA. It is in `lib/resources.ts` with `excluded: true` and is **not rendered**. Remove `excluded` if it was intended. | Resources |
 | 7 | **Contact** — WhatsApp community link, reply-to email, PHP form endpoint path. The Footer deliberately ships **without** a contact column rather than with `#` placeholders; it is added the moment these exist. | Contact, Footer |
@@ -228,7 +259,7 @@ One section per pass.
 - [x] **Curriculum** — six stages, alternating rows, scrubbed spine *(grouping derived — gap 2)*
 - [x] ~~**Phases**~~ — **dropped 2026-08-20** at the client's call: Curriculum already exposes all 21 sections, so a phase grid would repeat the same data under invented headings. Removed from `NAV_ITEMS`.
 - [x] **Resources** — featured playlist + 8 cards, drawn cover art *(gaps 6a, 6b)*
-- [ ] **LiveClass** — *blocked on gap 5*
+- [x] **LiveClass** — both states built; ships the empty state *(gap 5 supplies a class)*
 - [ ] **Program** — *blocked on gaps 3 and 4*
 - [ ] **Instructor** — *blocked on gap 8*
 - [ ] **Contact** — *blocked on gap 7*
