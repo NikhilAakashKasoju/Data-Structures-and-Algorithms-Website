@@ -39,13 +39,16 @@ an `app/api/**` route handler — route handlers do not exist under
 | `lib/site.ts` | `asset()` — every `public/` path must go through it or it 404s in production |
 | `lib/motion.ts` | Shared entrance variants so the whole page animates as one document |
 | `lib/course.ts` | Single source of truth for course facts; unverified values are `null` |
-| `lib/curriculum.ts` | All 21 sections and 223 transcribed lecture rows, verbatim including source typos |
+| `lib/curriculum.ts` | All 21 sections and 223 rows, verbatim and audited against screenshots. `displayTitle`/`badge`/`sectionLabel()` carry the rendered form; `kind` separates the one article from the 222 videos |
 | `lib/nav.ts` | Nav model — one array drives both the rendered list and the scroll-spy observer |
 | `components/Nav.tsx` | Sticky nav, IntersectionObserver scroll-spy, hamburger below `lg` |
 | `components/Hero.tsx` | Hero copy, CTAs, count-up stats |
 | `components/HeroVisual.tsx` | Linked-list SVG; holds the `svgRef` for reduced-motion layer 3 |
 | `lib/useCountUp.ts` | rAF count-up against a real timestamp, easeOutExpo, skipped under reduced motion |
 | `components/Marquee.tsx` | Keyword band. Server component — pure CSS animation, ships zero JS |
+| `lib/stages.ts` | Six-stage grouping over the 21 sections; counts/durations computed, never typed |
+| `components/Curriculum.tsx` | Alternating rows, scroll-scrubbed spine, `<details>` per stage |
+| `components/CurriculumArt.tsx` | Six illustrations on one shared viewBox, accent passed as a prop |
 | `app/globals.css` | Theme tokens, background layers, component primitives, reduced-motion layer 1 |
 | `components/ThemeScript.tsx` | Blocking inline script — sets `data-theme` before first paint, no flash |
 | `components/MotionProvider.tsx` | `MotionConfig reducedMotion="user"` — reduced-motion layer 2 |
@@ -58,11 +61,12 @@ an `app/api/**` route handler — route handlers do not exist under
 3. `svgRef.current.pauseAnimations()` per illustration → SVG SMIL (`<animateMotion>`), which
    neither of the above reaches
 
-Layer 3 lands with the first illustration.
+Layer 3 currently applies to `HeroVisual`, the only component using SMIL. The
+curriculum illustrations use CSS animations only, so layers 1 and 2 cover them.
 
 ### Deliberate exceptions
 
-Two places break a house rule on purpose. Both are commented in the source.
+Three places break a house rule on purpose. All are commented in the source.
 
 - **`Marquee` is full-bleed**, not inside the `max-w-[1300px]` section shell. A
   band that stops short of the viewport edge reads as a widget; one that runs
@@ -71,6 +75,14 @@ Two places break a house rule on purpose. Both are commented in the source.
   `prefers-reduced-motion` rule would leave the track at `translateX(0)` with
   most terms unreachable, so a scoped rule turns it into a horizontally
   scrollable strip instead.
+- **`Curriculum` groups the syllabus into six stages that do not exist in the
+  source.** The Udemy listing has 21 sections and nothing above them. The
+  grouping is mechanical and lossless — a dev-time assertion in `lib/stages.ts`
+  throws if the six stages do not cover sections 1–21 exactly once — and every
+  row exposes its real section titles in a `<details>`, so the grouping is a
+  way of reading the syllabus rather than a replacement for it. Stage names and
+  blurbs are editorial; every technique named in a blurb appears in a lecture
+  title. See Known Gaps 1 and 2.
 
 ### Client vs server components
 
@@ -98,27 +110,71 @@ Do not use `purple` (`#0b4fdb`) for small text on dark — it fails contrast. Us
 
 ## Verified facts
 
-Source: the Udemy listing supplied by the client, fetched 2026-08-18 —
+Sources: the Udemy listing (fetched 2026-08-18) and **curriculum screenshots of
+all 21 sections supplied by the client 2026-08-20** —
 <https://www.udemy.com/course/mastering-data-structures-and-algorithms-using-c-programming/>
 
 - Title: *Data Structures & Algorithms using C++, C and Python - 2026*
 - Instructor: Atchyut Kumar · Publisher: Edufulness EFN
 - 21 sections · 222 lectures · 43h 57m
 - Languages: C, C++, Python
-- Section titles 1–10 (see `lib/course.ts`)
 - "What you'll learn" bullets, quoted verbatim
+- **All 21 section titles and all 223 curriculum rows, verbatim**
+
+### Transcription audit — everything reconciles
+
+Each screenshot's section header prints a lecture count and a runtime. **All 21
+sections match `lib/curriculum.ts` on both figures**, and so do the totals:
+
+| | This repo | Udemy states |
+| --- | --- | --- |
+| Curriculum rows | 223 (222 video + 1 article) | 222 lectures |
+| Runtime | 43h 57m 54s | 43h 57m |
+
+The article is **"Column Major Order"** in section 2 — a document, not a video,
+shown with a page icon rather than a play icon. It carries `kind: "article"` and
+`duration: null`. That one row is the entire explanation of 223-vs-222; nothing
+was guessed to close the gap. Udemy's own per-section headers count it (section
+2 says "16 lectures"), while its course header does not — the UI follows the
+section headers per row and the course header for stage totals, and labels the
+article where it appears.
+
+**What the audit caught.** The client's paste ran each duration onto the end of
+its title with no separator, so any row whose title ends in an index digit is
+ambiguous: `"AVL Tree - Deletion : L-14:09"` is either *L-* + 14:09 or *L-1* +
+4:09. Thirteen such rows were resolved with an explicit override table rather
+than a heuristic. Twelve were right first time; the audit found **one that was
+not** — that AVL row, read as 14:09 instead of 4:09, put section 10 exactly ten
+minutes over. Correcting it brought the course total to Udemy's figure to the
+minute. Without the per-section runtimes in the screenshots this would have
+shipped undetected.
+
+### Verbatim data, corrected display
+
+`title` is exactly what the source says. `displayTitle` holds what to render,
+and is set only where the source title fights the page:
+
+| Section | Source `title` | Rendered |
+| --- | --- | --- |
+| 2 | `1. Arrays` | Arrays |
+| 4 | `2.1 Recursion : Exclusive` | Recursion : Exclusive |
+| 10 | `BONUS LECTURE - ADVANCED DATA STRUCTURE : 6. AVL Trees - Exclusive` | AVL Trees - Exclusive + a "Bonus · Advanced" badge |
+| 14 | `Aymptotic Notations` | Asymptotic Notations |
+
+Udemy's own enumeration is internally inconsistent — "Basic Stuff" is
+unnumbered, then 1–6 with a "2.1" wedged in, then "Binary Search Trees" and
+"Heaps" unnumbered again — so it would collide with the page's own 01–21
+numbering. It is stripped for display and preserved in the data. Section 14's
+`Aymptotic` is Udemy's typo, not ours. **Worth fixing on Udemy itself.**
 
 ## Known Gaps
 
-Nothing below is invented anywhere in the codebase. Each is `null` in
-`lib/course.ts` and will render as a flagged placeholder until supplied.
+Nothing below is invented anywhere in the codebase. Each unsupplied value is
+`null` in `lib/course.ts` and renders as a flagged placeholder.
 
 | # | Gap | Blocks |
 | --- | --- | --- |
-| 1 | **Section titles 11–21 are derived, not quoted.** The client's paste carried lecture rows but no section headers. Titles 1–10 are verbatim from the Udemy listing; 11–21 were inferred from lecture contents and carry `titleVerified: false` in `lib/curriculum.ts`. Confirm before ship. | Curriculum, Phases |
-| 2 | **Phase grouping.** How the 21 sections map onto the "phases" grid used on the DE site. | Phases |
-| 2b | **Lecture count is 223 here vs Udemy's stated 222.** Likely the duplicated Stacks row ("Python Code : … Push(), Pop(), Display", 20:12 and 1:30). The site shows Udemy's 222. | Hero stats |
-| 2c | **Two lectures have no duration** in the source paste — "Column Major Order" (Arrays) and "Multistage Graph" (Dynamic Programming). Stored as `null`. Their absence exactly explains the 43h35m ↔ 43h57m gap. | Curriculum |
+| 2 | **Stage grouping is ours, not the client's.** The six stages in `lib/stages.ts` — their membership, names and blurbs — were derived to make 21 sections readable. If the course has its own phase structure, replace this with it. | Curriculum, Phases |
 | 3 | **Programme price + checkout URL** for direct EduFulness enrolment (not the Udemy listing). Until supplied, the Hero's primary CTA points at Udemy — the only checkout that verifiably exists. There is deliberately no "Enrol now" button. | Program, Hero CTA |
 | 4 | **Batch structure** — weekday/weekend, programme length in months, weekly hours. | Program |
 | 5 | **Next live class** — date, topic, duration, time. Needs a "nothing scheduled" state either way. | LiveClass |
@@ -128,6 +184,16 @@ Nothing below is invented anywhere in the codebase. Each is `null` in
 | 9 | **Icons** — `app/icon.png` (512×512), `app/apple-icon.png` (180×180), `app/opengraph-image.png` (1200×630, PNG/JPEG — not WebP). | Metadata |
 | 10 | **Prerequisites / target audience wording** and any certificate claim. Do not assert a certificate unless the client confirms one exists. | Hero, Program |
 
+Gap numbers are stable; closed ones are not reused.
+
+### Closed
+
+| # | Was | Closed |
+| --- | --- | --- |
+| 1 | Section titles 11–21 unknown, then sections 4 and 10 not provably verbatim | 2026-08-20 — screenshots of all 21 sections |
+| 2b | 223 rows vs Udemy's 222; runtime 10m54s over | 2026-08-20 — one article row, plus a corrected AVL duration |
+| 2c | "Column Major Order" and "Multistage Graph" had no duration | 2026-08-20 — Multistage Graph is 32:54; Column Major Order is an article and has none |
+
 ## Build order
 
 One section per pass.
@@ -135,8 +201,8 @@ One section per pass.
 - [x] **Nav** — sticky, scroll-spy, hamburger below `lg`
 - [x] **Hero** — copy, CTAs, count-up stats, linked-list visual
 - [x] **Marquee** — infinite keyword band
-- [ ] **Curriculum** — *blocked on gaps 1 and 2*
-- [ ] **Phases** — *blocked on gap 2*
+- [x] **Curriculum** — six stages, alternating rows, scrubbed spine *(grouping derived — gap 2)*
+- [ ] **Phases** — *blocked on gap 2; may be redundant now that Curriculum exposes all 21 sections*
 - [ ] **Resources** — *blocked on gap 6*
 - [ ] **LiveClass** — *blocked on gap 5*
 - [ ] **Program** — *blocked on gaps 3 and 4*

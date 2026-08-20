@@ -1,3 +1,4 @@
+import { Curriculum } from "@/components/Curriculum";
 import { Hero } from "@/components/Hero";
 import { Marquee } from "@/components/Marquee";
 import { NAV_ITEMS } from "@/lib/nav";
@@ -5,9 +6,9 @@ import { NAV_ITEMS } from "@/lib/nav";
 /**
  * Home page.
  *
- * Built so far: Hero, Marquee. Everything after is an empty anchor target so the
- * Nav's scroll-spy has real sections to observe; each stub is replaced by
- * its real section one at a time, in NAV_ITEMS order.
+ * Built so far: Hero, Marquee, Curriculum. Every remaining nav target is
+ * still an empty stub so the Nav's scroll-spy has real sections to observe;
+ * each is replaced by its real section one at a time, in NAV_ITEMS order.
  *
  * Server component — the interactive parts (Nav, Hero) own their own client
  * boundaries, so the page shell itself never ships to the browser.
@@ -17,8 +18,9 @@ export default function Page() {
     <>
       <Hero />
       <Marquee />
+      <Curriculum />
 
-      {NAV_ITEMS.map((item) => (
+      {NAV_ITEMS.filter((item) => item.id !== "curriculum").map((item) => (
         <Stub key={item.id} id={item.id} label={item.label} />
       ))}
 

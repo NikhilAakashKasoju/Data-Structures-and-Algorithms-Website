@@ -26,23 +26,9 @@ export const COURSE = {
   udemyUrl:
     "https://www.udemy.com/course/mastering-data-structures-and-algorithms-using-c-programming/",
 
-  /**
-   * VERIFIED section titles 1–10. Titles 11–21 were not exposed by the
-   * fetched listing page (Udemy lazy-loads the rest of the curriculum).
-   * Do not invent them — see README "Known Gaps".
-   */
-  verifiedSections: [
-    "Basic Stuff",
-    "Arrays",
-    "Stacks",
-    "Recursion (Exclusive)",
-    "Queues",
-    "Linked Lists",
-    "Binary Trees",
-    "Binary Search Trees",
-    "Heaps",
-    "AVL Trees (Bonus - Advanced Data Structure)",
-  ] as const,
+  /* Section titles no longer live here. lib/curriculum.ts holds all 21,
+     verbatim and audited against curriculum screenshots — one source of
+     truth, so the two cannot drift apart. */
 
   /** Quoted verbatim from the Udemy "What you'll learn" block. */
   outcomes: [
