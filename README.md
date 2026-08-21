@@ -12,6 +12,7 @@ Next.js 14 (App Router) · TypeScript · Tailwind · Framer Motion · static exp
 npm install
 npm run dev        # http://localhost:3000/dsa
 npm run build      # emits ./out
+npm start          # serves ./out — NOT `next start`, which cannot run an export
 npm run typecheck
 ```
 
@@ -84,6 +85,25 @@ canonical URL resolves against.
 6. **Do not add a catch-all rewrite to `/index.html`.** That is SPA advice and
    is wrong here — it would swallow `404.html`, which the export already emits.
 
+#### Picking the wrong service type
+
+Creating a **Web Service** instead of a Static Site builds fine and then dies
+on boot:
+
+```
+Error: "next start" does not work with "output: export" configuration.
+```
+
+A Web Service runs a start command; a static export has nothing to start.
+Render cannot convert one service type into the other, so the fix is to create
+a **Static Site** against the same repo and delete the Web Service.
+
+`npm start` is now `npx --yes serve@latest out`, so a Web Service would at
+least boot — verified locally that `serve` reads `PORT` from the environment
+and binds `0.0.0.0`. **Stopgap only.** A Web Service handing out static files
+costs an instance, spins down when idle on the free tier, and puts a cold start
+in front of files a CDN should serve.
+
 `render.yaml` in the repo does steps 3–5 as a Blueprint. Its field names follow
 Render's Blueprint spec but were not verified against the live docs in the
 session that wrote it — if Render rejects it, delete it and use the dashboard.
@@ -139,7 +159,7 @@ an `app/api/**` route handler — route handlers do not exist under
 | `components/Hero.tsx` | Hero copy, CTAs, count-up stats |
 | `components/HeroVisual.tsx` | Linked-list SVG; holds the `svgRef` for reduced-motion layer 3 |
 | `lib/useCountUp.ts` | rAF count-up against a real timestamp, easeOutExpo, skipped under reduced motion |
-| `components/Marquee.tsx` | Keyword band. Server component — pure CSS animation, ships zero JS |
+| `components/Marquee.tsx` | Keyword band in display type. Server component — pure CSS animation, ships zero JS |
 | `lib/stages.ts` | Six-stage grouping over the 21 sections; counts/durations computed, never typed |
 | `components/Curriculum.tsx` | Alternating rows, scroll-scrubbed spine, `<details>` per stage |
 | `components/CurriculumArt.tsx` | Six illustrations on one shared viewBox, accent passed as a prop |
@@ -226,7 +246,7 @@ hydration boundary on an otherwise zero-JS component for one number.
 
 ### Deliberate exceptions
 
-Three places break a house rule on purpose. All are commented in the source.
+Four places break a house rule on purpose. All are commented in the source.
 
 - **`Marquee` is full-bleed**, not inside the `max-w-[1300px]` section shell. A
   band that stops short of the viewport edge reads as a widget; one that runs
@@ -235,6 +255,14 @@ Three places break a house rule on purpose. All are commented in the source.
   `prefers-reduced-motion` rule would leave the track at `translateX(0)` with
   most terms unreachable, so a scoped rule turns it into a horizontally
   scrollable strip instead.
+- **The marquee uses `font-display` at 26–32px, not the mono `label` style.**
+  Everywhere else, small uppercase text is JetBrains Mono with `0.12em`
+  tracking. The band is not a row of labels — it is a statement of scope
+  scrolling past, so it takes Space Grotesk Bold and `tracking-tight`.
+  Letter-spacing that rescues 11px mono actively hurts a 32px bold face.
+  Separator dots moved from `lime` at 3px to `purple-2` at 6px: a 3px dot
+  beside 32px type reads as dirt on the screen rather than as punctuation.
+
 - **`Curriculum` groups the syllabus into six stages that do not exist in the
   source.** The Udemy listing has 21 sections and nothing above them. The
   grouping is mechanical and lossless — a dev-time assertion in `lib/stages.ts`

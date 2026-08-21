@@ -59,7 +59,7 @@ export function Marquee() {
        copy. */
     <section
       aria-label="Topics covered in this course"
-      className="relative z-10 overflow-hidden border-y border-line bg-surface/50 py-4 sm:py-5"
+      className="relative z-10 overflow-hidden border-y border-line bg-surface/50 py-5 sm:py-7"
     >
       <div className="marquee-mask">
         <div
@@ -88,15 +88,25 @@ function KeywordRow({ "aria-hidden": ariaHidden }: { "aria-hidden"?: boolean }) 
          along. All spacing lives inside the <li> padding. */
     >
       {KEYWORDS.map(([term]) => (
-        <li key={term} className="flex shrink-0 items-center px-5 sm:px-7">
-          <span className="whitespace-nowrap font-mono text-[12px] uppercase tracking-[0.12em] text-muted sm:text-[13px]">
+        <li key={term} className="flex shrink-0 items-center px-4 sm:px-6">
+          {/* font-display, not font-mono. The band is a statement of scope,
+              not a row of labels — at 28-34px Space Grotesk Bold it reads as
+              a headline scrolling past, which is the whole point. Mono at
+              12px read as a status bar.
+
+              tracking-tight rather than the 0.12em used on eyebrows: letter-
+              spacing that helps 11px mono become legible actively hurts a
+              32px bold face, which already has the width to breathe. */}
+          <span className="whitespace-nowrap font-display text-[26px] font-bold uppercase leading-none tracking-tight text-text sm:text-[32px]">
             {term}
           </span>
           {/* Separator dot. Decorative, so it lives outside the text node
-              rather than being punctuation a screen reader would read. */}
+              rather than being punctuation a screen reader would read.
+              Scaled up with the type — a 3px dot beside 32px text reads as
+              dirt on the screen rather than as punctuation. */}
           <span
             aria-hidden="true"
-            className="ml-5 h-[3px] w-[3px] rounded-full bg-lime sm:ml-7"
+            className="ml-4 h-[6px] w-[6px] shrink-0 rounded-full bg-purple-2 sm:ml-6"
           />
         </li>
       ))}
