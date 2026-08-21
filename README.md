@@ -169,6 +169,8 @@ an `app/api/**` route handler — route handlers do not exist under
 | `lib/liveClass.ts` | The one time-sensitive value on the site. `null` = nothing scheduled, which is a real state |
 | `components/LiveClass.tsx` | Scheduled / nothing-scheduled panel with **client-side expiry** |
 | `lib/instructor.ts` | Bio and figures, each sourced in a comment; `portrait: null` until a photo exists |
+| `lib/testimonials.ts` | 13 reviews, verbatim including typos. No aggregate rating is claimed |
+| `components/Testimonials.tsx` | CSS multi-column quote wall, `figure`/`blockquote`/`figcaption` |
 | `components/Instructor.tsx` | Portrait with scrim caption, count-up stats, drawn fallback tile |
 | `lib/program.ts` | What's in the course, computed from the curriculum. `DIRECT_ENROLMENT` null by default |
 | `components/Program.tsx` | Raised pricing panel, one filled CTA |
@@ -444,6 +446,8 @@ Nothing below is invented anywhere in the codebase. Each unsupplied value is
 | 8b | **No instructor portrait.** `INSTRUCTOR.portrait` is `null` and the component draws a fallback tile. Drop a photo in `public/` and set `portrait: "/instructor.jpg"` — it must go through `asset()`, which `portraitSrc()` already does. Stock photography was never an option: a stranger's face beside a real name is a lie in the one place the reader most needs to trust the page. | Instructor |
 
 | 10 | **Prerequisites / target audience wording** and any certificate claim. Do not assert a certificate unless the client confirms one exists. | Hero, Program |
+| 11 | **Testimonial provenance.** One review (Ramana) was supplied as a screenshot of the Udemy review card. The other twelve were supplied as text with a stated rating and are attributed to Udemy because they name the Udemy listing — reasonable, but not independently verified. | Testimonials |
+| 12 | **Course title year mismatch.** Several reviewers name the course "… – 2025" while the current listing reads "- 2026". Presumably renamed for the year; the quotes keep whatever each reviewer wrote. Worth confirming nothing else still says 2025. | Testimonials |
 
 Gap numbers are stable; closed ones are not reused.
 
@@ -474,6 +478,37 @@ itself, that price *is* fixed and controlled, and it belongs on the page. Set
 `DIRECT_ENROLMENT` in `lib/program.ts` and the panel gains a price, a batch
 line and an "Enrol now" primary, with Udemy dropping to secondary — one filled
 CTA either way.
+
+### Testimonials
+
+**Quotes are verbatim, typos included** — *"Why this instructor didn't became
+famous"*, *"What a effort"*, *"Most likely part for me is ,"*. Tidying a
+testimonial is not copy-editing; it is putting words in a real person's mouth.
+The unevenness is also the strongest signal that these are real people rather
+than marketing copy. Read the header of `lib/testimonials.ts` before "fixing"
+any grammar in that file.
+
+**No aggregate figure is claimed.** The section never says "13 reviews" or
+"5.0 average". These are thirteen reviews the client chose to show; presenting
+a hand-picked set as a statistic would read as the course's overall rating,
+which it is not.
+
+**No dates.** Only one review's date is known ("1 year ago", itself relative
+and already stale). Rendering that one and inventing twelve others was not an
+option, so none are shown.
+
+**No stock avatars** — an initial in a disc. A made-up face beside a real
+person's review is the same lie as a stock instructor portrait.
+
+**Layout is CSS multi-column, not a grid.** The quotes range from one line to
+eight. A grid would stretch every card in a row to the tallest, leaving a wall
+of whitespace under the short ones, or need JS to measure and distribute.
+`columns-*` with `break-inside-avoid` packs by height, ships no JavaScript, and
+reading order still follows the DOM. Verified: 13 cards render, none split
+across a column boundary.
+
+**Stars are `aria-hidden`** with a visually-hidden "Rated 5 out of 5", so a
+screen reader hears the rating once rather than the word "star" five times.
 
 ### The contact form
 
@@ -615,6 +650,7 @@ One section per pass.
 - [x] **LiveClass** — both states built; ships the empty state *(gap 5 supplies a class)*
 - [x] **Program** — panel with computed inclusions and one filled CTA *(direct enrolment optional — gap 3)*
 - [x] **Instructor** — bio, count-up stats, portrait slot with drawn fallback *(gaps 8a, 8b)*
+- [x] **Testimonials** — 13 verbatim reviews, CSS column wall *(gaps 11, 12)*
 - [x] **Contact** — channel hand-off now, form ready behind one config value *(gaps 7a, 7b)*
 - [x] **Footer** — brand, link columns from `NAV_ITEMS`, build-time year *(no contact column — gap 7)*
 - [x] **ThemeToggle** — fixed bottom-right (landed with the scaffold)

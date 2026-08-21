@@ -6,6 +6,7 @@ import { LiveClass } from "@/components/LiveClass";
 import { Marquee } from "@/components/Marquee";
 import { Program } from "@/components/Program";
 import { Resources } from "@/components/Resources";
+import { Testimonials } from "@/components/Testimonials";
 
 /**
  * Home page.
@@ -28,6 +29,7 @@ export default function Page() {
       <LiveClass />
       <Program />
       <Instructor />
+      <Testimonials />
       <Contact />
     </>
   );
