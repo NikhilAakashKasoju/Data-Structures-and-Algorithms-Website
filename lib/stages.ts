@@ -32,7 +32,7 @@ export type Stage = {
 export const STAGES: Stage[] = [
   {
     key: "linear",
-    title: "Linear structures",
+    title: "Linear structures: Arrays",
     blurb:
       "How memory is laid out, then the four structures built directly on top of it. Row- and column-major order, push and pop, the circular queue that fixes the ordinary one, and singly, circular and doubly linked lists — each written out in C, C++ and Python.",
     sections: [1, 2, 3, 5, 6],

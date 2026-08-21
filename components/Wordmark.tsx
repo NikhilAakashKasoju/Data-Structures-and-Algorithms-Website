@@ -62,7 +62,7 @@ export function Wordmark({ showSuffix = true }: { showSuffix?: boolean }) {
       </span>
       {showSuffix && (
         <span className="hidden font-mono text-[11px] uppercase tracking-[0.12em] text-muted sm:inline">
-          / DSA
+          / Data Structures and Algorithms
         </span>
       )}
     </>
